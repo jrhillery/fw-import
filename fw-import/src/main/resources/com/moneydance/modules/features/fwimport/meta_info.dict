@@ -1,0 +1,9 @@
+{
+  "vendor" = "John Hillery"
+  "module_build" = "1"
+  "minbuild" = "1000"
+  "vendor.url" = "http://your.url.here/"
+  "module_name" = "FW Import"
+  "module_desc" = "<html><body><title>FW Import</title><p>Module used to import Fidelity NetBenefits&reg; workplace account data into Moneydance.</p></body></html>"
+  "desc" = "Module used to import Fidelity NetBenefits workplace account data into Moneydance."
+}
