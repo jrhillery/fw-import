@@ -41,9 +41,11 @@ public class Main extends FeatureModule {
 	 */
 	void importFile() {
 		try {
-			this.importWindow.clearText();
-			this.importer.forgetChanges();
-			this.importer.importFile();
+			synchronized (this.importer) {
+				this.importWindow.clearText();
+				this.importer.forgetChanges();
+				this.importer.importFile();
+			}
 			this.importWindow.enableCommitButton(this.importer.isModified());
 		} catch (Throwable e) {
 			handleException(e);
@@ -56,7 +58,9 @@ public class Main extends FeatureModule {
 	 */
 	void commitChanges() {
 		try {
-			this.importer.commitChanges();
+			synchronized (this.importer) {
+				this.importer.commitChanges();
+			}
 			this.importWindow.enableCommitButton(this.importer.isModified());
 		} catch (Throwable e) {
 			handleException(e);

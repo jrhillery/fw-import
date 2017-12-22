@@ -8,7 +8,7 @@ import static java.time.format.FormatStyle.MEDIUM;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -20,6 +20,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.ResourceBundle;
 
 import com.infinitekind.moneydance.model.Account;
@@ -31,24 +32,41 @@ import com.infinitekind.moneydance.model.CurrencyType;
 
 public class FwImporter {
 
+	/**
+	 * This object handles deferred updates to a Moneydance security.
+	 */
 	private class SecurityHandler {
-		CurrencyType security;
+		private CurrencyType security;
 
-		double newPrice = 0;
-		int newDate = 0;
+		private double newPrice = 0;
+		private int newDate = 0;
 
+		/**
+		 * Sole constructor.
+		 *
+		 * @param security
+		 */
 		public SecurityHandler(CurrencyType security) {
 			this.security = security;
 
 		} // end (CurrencyType) constructor
 
-		public void setNewPrice(double newPrice, int newDate) {
+		/**
+		 * Store a deferred price quote for a specified date integer.
+		 *
+		 * @param newPrice price quote
+		 * @param newDate date integer
+		 */
+		public void storeNewPrice(double newPrice, int newDate) {
 			this.newPrice = newPrice;
 			this.newDate = newDate;
 			FwImporter.this.priceChanges.add(this);
 
-		} // end setNewPrice(double)
+		} // end storeNewPrice(double, int)
 
+		/**
+		 * Apply the stored update.
+		 */
 		public void applyUpdate() {
 			List<CurrencySnapshot> snapShots = this.security.getSnapshots();
 			CurrencySnapshot latestSnapshot = snapShots.get(snapShots.size() - 1);
@@ -74,9 +92,12 @@ public class FwImporter {
 
 	private List<SecurityHandler> priceChanges = new ArrayList<>();
 	private int numPricesSet = 0;
+	private Map<String, String> csvRowMap = new LinkedHashMap<>();
+	private Properties fwImportProps = null;
 
 	private static ResourceBundle msgBundle = null;
 
+	private static final String propertiesFileName = "fw-import.properties";
 	private static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages";
 	private static final char DOUBLE_QUOTE = '"';
 	private static final double [] centMult = {1, 10, 100, 1000, 10000};
@@ -110,7 +131,6 @@ public class FwImporter {
 		// Importing data for %s from file %s.%n
 		writeFormatted("FWIMP01", this.importWindow.getMarketDate().format(dateFmt),
 			this.importWindow.getFileToImport().getName());
-		Map<String, String> csvRowMap = new LinkedHashMap<>();
 
 		BufferedReader reader = openFile();
 		if (reader == null)
@@ -123,13 +143,13 @@ public class FwImporter {
 				String[] values = readLine(reader);
 
 				if (header != null && values != null) {
-					csvRowMap.clear();
+					this.csvRowMap.clear();
 
 					for (int i = 0; i < values.length && i < header.length; ++i) {
-						csvRowMap.put(header[i], values[i]);
+						this.csvRowMap.put(header[i], values[i]);
 					} // end for
 
-					importRow(csvRowMap);
+					importRow();
 				}
 			}
 		} finally {
@@ -140,41 +160,47 @@ public class FwImporter {
 
 	/**
 	 * Import this row of the comma separated value file.
-	 *
-	 * @param csvRowMap
 	 */
-	private void importRow(Map<String, String> csvRowMap) throws FwiException {
-		String symbol = stripQuotes(csvRowMap, "Symbol");
-		BigDecimal shares = new BigDecimal(stripQuotes(csvRowMap, "Quantity"));
-
-		// get the price to the sixth place past the decimal point
-		double price = new BigDecimal(stripQuotes(csvRowMap, "Most Recent Value"))
-			.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN).doubleValue();
-
+	private void importRow() throws FwiException {
+		String symbol = stripQuotes("col.ticker");
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(symbol);
+
 		if (security == null) {
 			// Unable to obtain Moneydance security for ticker symbol [%s] (%s).%n
-			writeFormatted("FWIMP02", symbol, stripQuotes(csvRowMap, "Description"));
+			writeFormatted("FWIMP02", symbol, stripQuotes("col.name"));
 		} else {
-			int importDate = convLocalToDateInt(this.importWindow.getMarketDate());
-			double oldPrice = convRateToPrice(security.getUserRateByDateInt(importDate));
-			String securityName = security.getName();
-			DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
-			formatter.setMinimumFractionDigits(PRICE_FRACTION_DIGITS);
+			BigDecimal shares = new BigDecimal(stripQuotes("col.shares"));
 
-			// Change %s price from %s to %s (%+.2f%%).%n
-			writeFormatted("FWIMP03", securityName, formatter.format(oldPrice),
-				formatter.format(price), (price / oldPrice - 1) * 100);
+			storePriceQuoteIfDiff(security, shares);
 
-			new SecurityHandler(security).setNewPrice(price, importDate);
-			++this.numPricesSet;
-
-			verifyShareBalance(
-				getAccountByInvestNumber(stripQuotes(csvRowMap, "Account Name/Number")),
-				securityName, shares);
+			verifyShareBalance(getAccountByInvestNumber(stripQuotes("col.account.num")),
+				security.getName(), shares);
 		}
 
-	} // end importRow(Map<String, String>)
+	} // end importRow()
+
+	/**
+	 * @param security
+	 * @param shares
+	 */
+	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares)
+			throws FwiException {
+		// get the price to the sixth place past the decimal point
+		double price = new BigDecimal(stripQuotes("col.value"))
+			.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN).doubleValue();
+		int importDate = convLocalToDateInt(this.importWindow.getMarketDate());
+		double oldPrice = convRateToPrice(security.getUserRateByDateInt(importDate));
+
+		// Change %s price from %s to %s (%+.2f%%).%n
+		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
+		formatter.setMinimumFractionDigits(PRICE_FRACTION_DIGITS);
+		writeFormatted("FWIMP03", security.getName(), formatter.format(oldPrice),
+			formatter.format(price), (price / oldPrice - 1) * 100);
+
+		new SecurityHandler(security).storeNewPrice(price, importDate);
+		++this.numPricesSet;
+
+	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal)
 
 	/**
 	 * @param desiredAccountNum
@@ -258,16 +284,16 @@ public class FwImporter {
 	} // end getSubAccountByName(Account, String)
 
 	/**
-	 * @param csvRowMap
-	 * @param key csv key from column header
+	 * @param propKey property key for column header
 	 * @return value from the csv row map with any surrounding double quotes removed
 	 */
-	private String stripQuotes(Map<String, String> csvRowMap, String key) throws FwiException {
-		String val = csvRowMap.get(key);
+	private String stripQuotes(String propKey) throws FwiException {
+		String csvColumnKey = getFwImportProps().getProperty(propKey);
+		String val = this.csvRowMap.get(csvColumnKey);
 		if (val == null) {
-			// Unable to locate column %s in %s. Found %s
-			throw new FwiException(null, "FWIMP11", key, this.importWindow.getFileToImport(),
-				csvRowMap.keySet());
+			// Unable to locate column %s (%s) in %s. Found %s
+			throw new FwiException(null, "FWIMP11", csvColumnKey, propKey,
+				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
 		}
 		int quoteLoc = val.indexOf(DOUBLE_QUOTE);
 
@@ -282,7 +308,7 @@ public class FwImporter {
 		}
 
 		return val.trim();
-	} // end stripQuotes(Map<String, String>, String)
+	} // end stripQuotes(String)
 
 	/**
 	 * @return a buffered reader to read from the file selected to import
@@ -335,7 +361,7 @@ public class FwImporter {
 	private static void close(BufferedReader reader) {
 		try {
 			reader.close();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			// ignore
 		}
 
@@ -382,6 +408,35 @@ public class FwImporter {
 
 		return null;
 	} // end releaseResources()
+
+	/**
+	 * @return our properties
+	 */
+	private Properties getFwImportProps() throws FwiException {
+		if (this.fwImportProps == null) {
+			InputStream propsStream = getClass().getClassLoader()
+				.getResourceAsStream(propertiesFileName);
+			if (propsStream == null)
+				// Unable to find %s on the class path.
+				throw new FwiException(null, "FWIMP15", propertiesFileName);
+
+			this.fwImportProps = new Properties();
+			try {
+				this.fwImportProps.load(propsStream);
+			} catch (Exception e) {
+				this.fwImportProps = null;
+
+				// Exception loading %s.
+				throw new FwiException(e, "FWIMP16", propertiesFileName);
+			} finally {
+				try {
+					propsStream.close();
+				} catch (Exception e) { /* ignore */ }
+			}
+		}
+
+		return this.fwImportProps;
+	} // end getFwImportProps()
 
 	/**
 	 * @return our message bundle
