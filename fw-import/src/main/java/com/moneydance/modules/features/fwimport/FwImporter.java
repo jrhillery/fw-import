@@ -30,6 +30,10 @@ import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 
+/**
+ * Module used to import Fidelity NetBenefits workplace account data into
+ * Moneydance.
+ */
 public class FwImporter {
 
 	/**
@@ -68,16 +72,18 @@ public class FwImporter {
 		 * Apply the stored update.
 		 */
 		public void applyUpdate() {
-			List<CurrencySnapshot> snapShots = this.security.getSnapshots();
-			CurrencySnapshot latestSnapshot = snapShots.get(snapShots.size() - 1);
+			CurrencySnapshot latestSnapshot = getLatestSnapshot(this.security);
 			this.security.setSnapshotInt(this.newDate, 1 / this.newPrice);
 
-			if (this.newDate > latestSnapshot.getDateInt()) {
+			if (this.newDate >= latestSnapshot.getDateInt()) {
 				this.security.setUserRate(1 / this.newPrice);
 			}
 
 		} // end applyUpdate()
 
+		/**
+		 * @return a string representation of this SecurityHandler
+		 */
 		public String toString() {
 
 			return this.security.getTickerSymbol() + ":" + this.newPrice;
@@ -151,9 +157,13 @@ public class FwImporter {
 
 					importRow();
 				}
-			}
+			} // end while
 		} finally {
 			close(reader);
+		}
+		if (!isModified()) {
+			// No new price data found in %s.%n
+			writeFormatted("FWIMP08", this.importWindow.getFileToImport().getName());
 		}
 
 	} // end importFile()
@@ -180,8 +190,8 @@ public class FwImporter {
 	} // end importRow()
 
 	/**
-	 * @param security
-	 * @param shares
+	 * @param security the Moneydance security to use
+	 * @param shares the number of shares included in the value
 	 */
 	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares)
 			throws FwiException {
@@ -189,16 +199,21 @@ public class FwImporter {
 		double price = new BigDecimal(stripQuotes("col.value"))
 			.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN).doubleValue();
 		int importDate = convLocalToDateInt(this.importWindow.getMarketDate());
-		double oldPrice = convRateToPrice(security.getUserRateByDateInt(importDate));
+		CurrencySnapshot latestSnapshot = getLatestSnapshot(security);
+		double oldPrice = convRateToPrice(importDate < latestSnapshot.getDateInt()
+			? security.getUserRateByDateInt(importDate)
+			: latestSnapshot.getUserRate());
 
-		// Change %s price from %s to %s (%+.2f%%).%n
-		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
-		formatter.setMinimumFractionDigits(PRICE_FRACTION_DIGITS);
-		writeFormatted("FWIMP03", security.getName(), formatter.format(oldPrice),
-			formatter.format(price), (price / oldPrice - 1) * 100);
+		if (importDate != latestSnapshot.getDateInt() || price != oldPrice) {
+			// Change %s price from %s to %s (%+.2f%%).%n
+			DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
+			formatter.setMinimumFractionDigits(PRICE_FRACTION_DIGITS);
+			writeFormatted("FWIMP03", security.getName(), formatter.format(oldPrice),
+				formatter.format(price), (price / oldPrice - 1) * 100);
 
-		new SecurityHandler(security).storeNewPrice(price, importDate);
-		++this.numPricesSet;
+			new SecurityHandler(security).storeNewPrice(price, importDate);
+			++this.numPricesSet;
+		}
 
 	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal)
 
@@ -291,7 +306,7 @@ public class FwImporter {
 		String csvColumnKey = getFwImportProps().getProperty(propKey);
 		String val = this.csvRowMap.get(csvColumnKey);
 		if (val == null) {
-			// Unable to locate column %s (%s) in %s. Found %s
+			// Unable to locate column %s (%s) in %s. Found columns %s
 			throw new FwiException(null, "FWIMP11", csvColumnKey, propKey,
 				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
 		}
@@ -331,6 +346,7 @@ public class FwImporter {
 	 */
 	private boolean hasMore(BufferedReader reader) throws FwiException {
 		try {
+
 			return reader.ready();
 		} catch (Exception e) {
 			// Exception checking file %s.
@@ -361,9 +377,7 @@ public class FwImporter {
 	private static void close(BufferedReader reader) {
 		try {
 			reader.close();
-		} catch (Exception e) {
-			// ignore
-		}
+		} catch (Exception e) { /* ignore */ }
 
 	} // end close(BufferedReader)
 
@@ -504,6 +518,16 @@ public class FwImporter {
 		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
 
 	} // end writeFormatted(String, Object...)
+
+	/**
+	 * @param security
+	 * @return the last currency snap shot for the supplied security
+	 */
+	private static CurrencySnapshot getLatestSnapshot(CurrencyType security) {
+		List<CurrencySnapshot> snapShots = security.getSnapshots();
+
+		return snapShots.get(snapShots.size() - 1);
+	} // end getLatestSnapshot(CurrencyType)
 
 	/**
 	 * @param rate the Moneydance currency rate for a security

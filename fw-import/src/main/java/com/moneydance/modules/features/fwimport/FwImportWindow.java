@@ -126,7 +126,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		this.txtrOutputLog = new JTextArea();
 		this.txtrOutputLog.setEditable(false);
-		this.txtrOutputLog.setToolTipText("Output from the program appears here");
 		JScrollPane scrollPane = new JScrollPane(this.txtrOutputLog);
 		GroupLayout gl_contentPane = new GroupLayout(this.contentPane);
 		gl_contentPane.setHorizontalGroup(
@@ -207,9 +206,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 			} finally {
 				try {
 					stream.close();
-				} catch (Exception e) {
-					// ignore
-				}
+				} catch (Exception e) { /* ignore */ }
 			}
 		}
 
