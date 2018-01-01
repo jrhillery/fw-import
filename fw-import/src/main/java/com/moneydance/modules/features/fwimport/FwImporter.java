@@ -195,23 +195,28 @@ public class FwImporter {
 	 */
 	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares)
 			throws FwiException {
-		// get the price to the sixth place past the decimal point
-		double price = new BigDecimal(stripQuotes("col.value"))
-			.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN).doubleValue();
+		BigDecimal price = new BigDecimal(stripQuotes("col.price"));
+		BigDecimal value = new BigDecimal(stripQuotes("col.value"));
+
+		// see if shares * price = value to 2 places past the decimal point
+		if (!shares.multiply(price).setScale(value.scale(), HALF_EVEN).equals(value)) {
+			// no, so get the price to the sixth place past the decimal point
+			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
+		}
 		int importDate = convLocalToDateInt(this.importWindow.getMarketDate());
 		CurrencySnapshot latestSnapshot = getLatestSnapshot(security);
 		double oldPrice = convRateToPrice(importDate < latestSnapshot.getDateInt()
 			? security.getUserRateByDateInt(importDate)
 			: latestSnapshot.getUserRate());
 
-		if (importDate != latestSnapshot.getDateInt() || price != oldPrice) {
+		if (importDate != latestSnapshot.getDateInt() || price.doubleValue() != oldPrice) {
 			// Change %s price from %s to %s (%+.2f%%).%n
 			DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
-			formatter.setMinimumFractionDigits(PRICE_FRACTION_DIGITS);
+			formatter.setMinimumFractionDigits(price.scale());
 			writeFormatted("FWIMP03", security.getName(), formatter.format(oldPrice),
-				formatter.format(price), (price / oldPrice - 1) * 100);
+				formatter.format(price), (price.doubleValue() / oldPrice - 1) * 100);
 
-			new SecurityHandler(security).storeNewPrice(price, importDate);
+			new SecurityHandler(security).storeNewPrice(price.doubleValue(), importDate);
 			++this.numPricesSet;
 		}
 
