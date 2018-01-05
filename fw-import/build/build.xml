@@ -7,7 +7,7 @@ http://jakarta.apache.org/ant/index.html
   <property name="src" value=".."/>
   <property name="build" value="."/>
   <property name="moneydance.devkit" value="C:/Users/John/Documents/Prog/moneydance-devkit-4.0"/>
-  <property name="thirdparty" value="${src}/../3rdParty"/>
+  <property name="swingutil" value="${src}/../../swingutil/swing-util"/>
   <property name="privkeyfile" value="${build}/priv_key"/>
   <property name="pubkeyfile" value="${build}/pub_key"/>
   <property name="privkeyid" value="99"/>
@@ -29,13 +29,15 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="fwimport" depends="init">
-    <javac srcdir="${src}/src/main/java" debug="${debug}" optimize="${optimize}"
-      classpathref="classpath" destdir="${build}"
-      includes="com/moneydance/modules/features/fwimport/**"/>
+    <javac debug="${debug}" optimize="${optimize}"
+      classpathref="classpath" destdir="${build}">
+    	<src path="${src}/src/main/java"/>
+    	<src path="${swingutil}/src/main/java"/>
+  	</javac>
 
     <jar destfile="${build}/fwimport.mxt">
       <fileset dir="${src}/src/main/resources" includes="**"/>
-      <fileset dir="${build}" includes="com/moneydance/modules/features/fwimport/**"/>
+      <fileset dir="${build}" includes="com/**"/>
     </jar>
 
     <java classname="com.moneydance.admin.KeyAdmin"
@@ -48,6 +50,7 @@ http://jakarta.apache.org/ant/index.html
       <arg line="${build}/fwimport.mxt"/>
     </java>
   	<delete file="${build}/fwimport.mxt"/>
+  	<delete dir="${build}/com"/>
     <move file="s-fwimport.mxt" tofile="${dist}/fwimport.mxt"/>
   </target>
 

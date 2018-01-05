@@ -3,6 +3,8 @@
  */
 package com.moneydance.modules.features.fwimport;
 
+import static com.johns.swing.util.HTMLPane.CL_DECREASE;
+import static com.johns.swing.util.HTMLPane.CL_INCREASE;
 import static java.math.RoundingMode.HALF_EVEN;
 import static java.time.format.FormatStyle.MEDIUM;
 
@@ -129,12 +131,12 @@ public class FwImporter {
 	 */
 	public void importFile() throws FwiException {
 		if (this.importWindow.getMarketDate() == null) {
-			// Market date must be specified.%n
+			// Market date must be specified.
 			writeFormatted("FWIMP00");
 			return;
 		}
 
-		// Importing data for %s from file %s.%n
+		// Importing data for %s from file %s.
 		writeFormatted("FWIMP01", this.importWindow.getMarketDate().format(dateFmt),
 			this.importWindow.getFileToImport().getName());
 
@@ -162,7 +164,7 @@ public class FwImporter {
 			close(reader);
 		}
 		if (!isModified()) {
-			// No new price data found in %s.%n
+			// No new price data found in %s.
 			writeFormatted("FWIMP08", this.importWindow.getFileToImport().getName());
 		}
 
@@ -176,7 +178,7 @@ public class FwImporter {
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(symbol);
 
 		if (security == null) {
-			// Unable to obtain Moneydance security for ticker symbol [%s] (%s).%n
+			// Unable to obtain Moneydance security for ticker symbol [%s] (%s).
 			writeFormatted("FWIMP02", symbol, stripQuotes("col.name"));
 		} else {
 			BigDecimal shares = new BigDecimal(stripQuotes("col.shares"));
@@ -210,11 +212,12 @@ public class FwImporter {
 			: latestSnapshot.getUserRate());
 
 		if (importDate != latestSnapshot.getDateInt() || price.doubleValue() != oldPrice) {
-			// Change %s price from %s to %s (%+.2f%%).%n
+			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
 			DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
 			formatter.setMinimumFractionDigits(price.scale());
+			String spanCl = price.doubleValue() < oldPrice ? CL_DECREASE : CL_INCREASE;
 			writeFormatted("FWIMP03", security.getName(), formatter.format(oldPrice),
-				formatter.format(price), (price.doubleValue() / oldPrice - 1) * 100);
+				formatter.format(price), spanCl, (price.doubleValue() / oldPrice - 1) * 100);
 
 			new SecurityHandler(security).storeNewPrice(price.doubleValue(), importDate);
 			++this.numPricesSet;
@@ -241,7 +244,7 @@ public class FwImporter {
 		}); // end new AcctFilter() {...}
 
 		if (subs == null || subs.isEmpty()) {
-			// Unable to obtain Moneydance investment account with number [%s].%n
+			// Unable to obtain Moneydance investment account with number [%s].
 			writeFormatted("FWIMP05", desiredAccountNum);
 		} else {
 			account = subs.get(0);
@@ -265,7 +268,7 @@ public class FwImporter {
 				double balance = secAccount.getUserCurrentBalance() / centMult[decimalPlaces];
 
 				if (importedShares.doubleValue() != balance) {
-					// Found a different %s share balance in account %s: have %.3f, imported %.3f.%n
+					// Found a different %s share balance in account %s: have %.3f, imported %.3f.
 					writeFormatted("FWIMP04", secAccount.getAccountName(),
 						account.getAccountName(), balance, importedShares);
 				}
@@ -294,7 +297,7 @@ public class FwImporter {
 		}); // end new AcctFilter() {...}
 
 		if (subs == null || subs.isEmpty()) {
-			// Unable to obtain Moneydance security [%s] in account %s.%n
+			// Unable to obtain Moneydance security [%s] in account %s.
 			writeFormatted("FWIMP06", securityName, account.getAccountName());
 		} else {
 			subAccount = subs.get(0);
@@ -338,7 +341,7 @@ public class FwImporter {
 		try {
 			reader = new BufferedReader(new FileReader(this.importWindow.getFileToImport()));
 		} catch (Exception e) {
-			// Exception opening file %s. %s%n
+			// Exception opening file %s. %s
 			writeFormatted("FWIMP12", this.importWindow.getFileToImport(), e);
 		}
 
@@ -393,11 +396,10 @@ public class FwImporter {
 		for (SecurityHandler sHandler : this.priceChanges) {
 			sHandler.applyUpdate();
 		}
-		// Changed %d security price%s.%n
+		// Changed %d security price%s.
 		writeFormatted("FWIMP07", this.numPricesSet, this.numPricesSet == 1 ? "" : "s");
 
 		forgetChanges();
-		this.numPricesSet = 0;
 
 	} // end commitChanges()
 
@@ -406,6 +408,7 @@ public class FwImporter {
 	 */
 	public void forgetChanges() {
 		this.priceChanges.clear();
+		this.numPricesSet = 0;
 
 	} // end forgetChanges()
 

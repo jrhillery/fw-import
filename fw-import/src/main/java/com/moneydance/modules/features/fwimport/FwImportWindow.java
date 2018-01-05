@@ -37,13 +37,14 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.DefaultFormatter;
+
+import com.johns.swing.util.HTMLPane;
 
 public class FwImportWindow extends JFrame implements ActionListener, PropertyChangeListener {
 	private Main feature;
@@ -56,7 +57,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private JFormattedTextField txtMarketDate;
 	private JLabel lblDayOfWeek;
 	private JButton btnCommit;
-	private JTextArea txtrOutputLog;
+	private HTMLPane pnOutputlog;
 
 	private static final String FILE_NAME_PREFIX = "Portfolio_Position_";
 	private static final String CHOOSER_TITLE = "Select file to import";
@@ -81,7 +82,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 */
 	private void initComponents() {
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-		setBounds(100, 100, 524, 324);
+		setSize(576, 356);
 		this.contentPane = new JPanel();
 		this.contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(this.contentPane);
@@ -124,9 +125,8 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		reducePreferredHeight(this.btnCommit);
 		this.btnCommit.setToolTipText("Commit changes to Moneydance");
 
-		this.txtrOutputLog = new JTextArea();
-		this.txtrOutputLog.setEditable(false);
-		JScrollPane scrollPane = new JScrollPane(this.txtrOutputLog);
+		this.pnOutputlog = new HTMLPane();
+		JScrollPane scrollPane = new JScrollPane(this.pnOutputlog);
 		GroupLayout gl_contentPane = new GroupLayout(this.contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
@@ -332,10 +332,10 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end setDayOfWeek(DayOfWeek)
 
 	/**
-	 * @param text
+	 * @param text HTML text to append to the output log text area
 	 */
 	public void addText(String text) {
-		this.txtrOutputLog.append(text);
+		this.pnOutputlog.addText(text);
 
 	} // end addText(String)
 
@@ -343,7 +343,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Clear the output log text area.
 	 */
 	public void clearText() {
-		this.txtrOutputLog.setText(null);
+		this.pnOutputlog.clearText();
 
 	} // end clearText()
 
@@ -452,5 +452,4 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		});
 
 	} // end main(String[])
-
 } // end class FwImportWindow
