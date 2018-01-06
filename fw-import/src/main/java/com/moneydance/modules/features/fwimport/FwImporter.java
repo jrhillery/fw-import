@@ -207,19 +207,21 @@ public class FwImporter {
 		}
 		int importDate = convLocalToDateInt(this.importWindow.getMarketDate());
 		CurrencySnapshot latestSnapshot = getLatestSnapshot(security);
+		double newPrice = price.doubleValue();
 		double oldPrice = convRateToPrice(importDate < latestSnapshot.getDateInt()
 			? security.getUserRateByDateInt(importDate)
 			: latestSnapshot.getUserRate());
 
-		if (importDate != latestSnapshot.getDateInt() || price.doubleValue() != oldPrice) {
+		if (importDate != latestSnapshot.getDateInt() || newPrice != oldPrice) {
 			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
 			DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
 			formatter.setMinimumFractionDigits(price.scale());
-			String spanCl = price.doubleValue() < oldPrice ? CL_DECREASE : CL_INCREASE;
+			String spanCl = newPrice < oldPrice ? CL_DECREASE
+				: newPrice > oldPrice ? CL_INCREASE : "";
 			writeFormatted("FWIMP03", security.getName(), formatter.format(oldPrice),
-				formatter.format(price), spanCl, (price.doubleValue() / oldPrice - 1) * 100);
+				formatter.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
 
-			new SecurityHandler(security).storeNewPrice(price.doubleValue(), importDate);
+			new SecurityHandler(security).storeNewPrice(newPrice, importDate);
 			++this.numPricesSet;
 		}
 
@@ -541,17 +543,26 @@ public class FwImporter {
 	 * @param rate the Moneydance currency rate for a security
 	 * @return the security price rounded to the tenth place past the decimal point
 	 */
-	public static double convRateToPrice(double rate) {
-		BigDecimal bd = BigDecimal.valueOf(1 / rate);
+	private static double convRateToPrice(double rate) {
+
+		return roundPrice(1 / rate);
+	} // end convRateToPrice(double)
+
+	/**
+	 * @param price
+	 * @return price rounded to the tenth place past the decimal point
+	 */
+	private static double roundPrice(double price) {
+		BigDecimal bd = BigDecimal.valueOf(price);
 
 		return bd.setScale(10, HALF_EVEN).doubleValue();
-	} // end convRateToPrice(double)
+	} // end roundPrice(double)
 
 	/**
 	 * @param date the local date value
 	 * @return the corresponding numeric date value in decimal form YYYYMMDD
 	 */
-	public static int convLocalToDateInt(LocalDate date) {
+	private static int convLocalToDateInt(LocalDate date) {
 		int dateInt = date.getYear() * 10000
 				+ date.getMonthValue() * 100
 				+ date.getDayOfMonth();
