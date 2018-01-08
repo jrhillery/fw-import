@@ -116,7 +116,7 @@ public class FwImporter {
 	 * Sole constructor.
 	 *
 	 * @param importWindow
-	 * @param accountBook
+	 * @param accountBook Moneydance account book
 	 */
 	public FwImporter(FwImportWindow importWindow, AccountBook accountBook) {
 		this.importWindow = importWindow;
@@ -133,39 +133,38 @@ public class FwImporter {
 		if (this.importWindow.getMarketDate() == null) {
 			// Market date must be specified.
 			writeFormatted("FWIMP00");
-			return;
-		}
+		} else {
+			// Importing data for %s from file %s.
+			writeFormatted("FWIMP01", this.importWindow.getMarketDate().format(dateFmt),
+				this.importWindow.getFileToImport().getName());
 
-		// Importing data for %s from file %s.
-		writeFormatted("FWIMP01", this.importWindow.getMarketDate().format(dateFmt),
-			this.importWindow.getFileToImport().getName());
+			BufferedReader reader = openFile();
+			if (reader == null)
+				return; // nothing to import
 
-		BufferedReader reader = openFile();
-		if (reader == null)
-			return; // nothing to import
+			try {
+				String[] header = readLine(reader);
 
-		try {
-			String[] header = readLine(reader);
+				while (hasMore(reader)) {
+					String[] values = readLine(reader);
 
-			while (hasMore(reader)) {
-				String[] values = readLine(reader);
+					if (header != null && values != null) {
+						this.csvRowMap.clear();
 
-				if (header != null && values != null) {
-					this.csvRowMap.clear();
+						for (int i = 0; i < values.length && i < header.length; ++i) {
+							this.csvRowMap.put(header[i], values[i]);
+						} // end for
 
-					for (int i = 0; i < values.length && i < header.length; ++i) {
-						this.csvRowMap.put(header[i], values[i]);
-					} // end for
-
-					importRow();
-				}
-			} // end while
-		} finally {
-			close(reader);
-		}
-		if (!isModified()) {
-			// No new price data found in %s.
-			writeFormatted("FWIMP08", this.importWindow.getFileToImport().getName());
+						importRow();
+					}
+				} // end while
+			} finally {
+				close(reader);
+			}
+			if (!isModified()) {
+				// No new price data found in %s.
+				writeFormatted("FWIMP08", this.importWindow.getFileToImport().getName());
+			}
 		}
 
 	} // end importFile()
@@ -174,19 +173,18 @@ public class FwImporter {
 	 * Import this row of the comma separated value file.
 	 */
 	private void importRow() throws FwiException {
-		String symbol = stripQuotes("col.ticker");
-		CurrencyType security = this.securities.getCurrencyByTickerSymbol(symbol);
+		Account account = getAccountByInvestNumber(stripQuotes("col.account.num"));
+		CurrencyType security = this.securities
+			.getCurrencyByTickerSymbol(stripQuotes("col.ticker"));
 
 		if (security == null) {
-			// Unable to obtain Moneydance security for ticker symbol [%s] (%s).
-			writeFormatted("FWIMP02", symbol, stripQuotes("col.name"));
+			verifyAccountBalance(account);
 		} else {
 			BigDecimal shares = new BigDecimal(stripQuotes("col.shares"));
 
 			storePriceQuoteIfDiff(security, shares);
 
-			verifyShareBalance(getAccountByInvestNumber(stripQuotes("col.account.num")),
-				security.getName(), shares);
+			verifyShareBalance(account, security.getName(), shares);
 		}
 
 	} // end importRow()
@@ -214,12 +212,11 @@ public class FwImporter {
 
 		if (importDate != latestSnapshot.getDateInt() || newPrice != oldPrice) {
 			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
-			DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
-			formatter.setMinimumFractionDigits(price.scale());
+			DecimalFormat df = getCurrencyFormat(price);
 			String spanCl = newPrice < oldPrice ? CL_DECREASE
 				: newPrice > oldPrice ? CL_INCREASE : "";
-			writeFormatted("FWIMP03", security.getName(), formatter.format(oldPrice),
-				formatter.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
+			writeFormatted("FWIMP03", security.getName(), df.format(oldPrice),
+				df.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
 
 			new SecurityHandler(security).storeNewPrice(newPrice, importDate);
 			++this.numPricesSet;
@@ -257,6 +254,26 @@ public class FwImporter {
 
 	/**
 	 * @param account
+	 */
+	private void verifyAccountBalance(Account account) throws FwiException {
+		if (account != null) {
+			BigDecimal importedBalance = new BigDecimal(stripQuotes("col.value"));
+			double balance = getCurrentBalance(account);
+
+			if (importedBalance.doubleValue() != balance) {
+				// Found a different balance in account %s: have %s, imported %s.
+				// Note: No Moneydance security for ticker symbol [%s] (%s).
+				DecimalFormat df = getCurrencyFormat(importedBalance);
+				writeFormatted("FWIMP02", account.getAccountName(), df.format(balance),
+					df.format(importedBalance), stripQuotes("col.ticker"),
+					stripQuotes("col.name"));
+			}
+		}
+
+	} // end verifyAccountBalance(Account)
+
+	/**
+	 * @param account
 	 * @param securityName
 	 * @param importedShares
 	 */
@@ -266,18 +283,28 @@ public class FwImporter {
 			Account secAccount = getSubAccountByName(account, securityName);
 
 			if (secAccount != null) {
-				int decimalPlaces = secAccount.getCurrencyType().getDecimalPlaces();
-				double balance = secAccount.getUserCurrentBalance() / centMult[decimalPlaces];
+				double balance = getCurrentBalance(secAccount);
 
 				if (importedShares.doubleValue() != balance) {
-					// Found a different %s share balance in account %s: have %.3f, imported %.3f.
+					// Found a different %s share balance in account %s: have %s, imported %s.
+					DecimalFormat df = getDecimalFormat(importedShares);
 					writeFormatted("FWIMP04", secAccount.getAccountName(),
-						account.getAccountName(), balance, importedShares);
+						account.getAccountName(), df.format(balance), df.format(importedShares));
 				}
 			}
 		}
 
 	} // end verifyShareBalance(Account, String, BigDecimal)
+
+	/**
+	 * @param account
+	 * @return the current account balance
+	 */
+	private static double getCurrentBalance(Account account) {
+		int decimalPlaces = account.getCurrencyType().getDecimalPlaces();
+
+		return account.getUserCurrentBalance() / centMult[decimalPlaces];
+	} // end getCurrentBalance(Account)
 
 	/**
 	 * @param account the parent account
@@ -557,6 +584,28 @@ public class FwImporter {
 
 		return bd.setScale(10, HALF_EVEN).doubleValue();
 	} // end roundPrice(double)
+
+	/**
+	 * @param amount
+	 * @return a currency decimal format with the number of fraction digits in amount
+	 */
+	private DecimalFormat getCurrencyFormat(BigDecimal amount) {
+		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
+		formatter.setMinimumFractionDigits(amount.scale());
+
+		return formatter;
+	} // end getCurrencyFormat(BigDecimal)
+
+	/**
+	 * @param val
+	 * @return a decimal format with the number of fraction digits in val
+	 */
+	private DecimalFormat getDecimalFormat(BigDecimal val) {
+		DecimalFormat formatter = (DecimalFormat) NumberFormat.getNumberInstance(this.locale);
+		formatter.setMinimumFractionDigits(val.scale());
+
+		return formatter;
+	} // end getDecimalFormat(BigDecimal)
 
 	/**
 	 * @param date the local date value
