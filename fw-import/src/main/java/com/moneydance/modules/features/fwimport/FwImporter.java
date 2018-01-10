@@ -203,8 +203,10 @@ public class FwImporter {
 			// no, so get the price to the sixth place past the decimal point
 			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
 		}
+		NumberFormat priceFmt = getCurrencyFormat(price);
 		int importDate = convLocalToDateInt(this.importWindow.getMarketDate());
 		CurrencySnapshot latestSnapshot = getLatestSnapshot(security);
+		validateCurrentUserRate(security, latestSnapshot, priceFmt);
 		double newPrice = price.doubleValue();
 		double oldPrice = convRateToPrice(importDate < latestSnapshot.getDateInt()
 			? security.getUserRateByDateInt(importDate)
@@ -212,17 +214,37 @@ public class FwImporter {
 
 		if (importDate != latestSnapshot.getDateInt() || newPrice != oldPrice) {
 			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
-			DecimalFormat df = getCurrencyFormat(price);
 			String spanCl = newPrice < oldPrice ? CL_DECREASE
 				: newPrice > oldPrice ? CL_INCREASE : "";
-			writeFormatted("FWIMP03", security.getName(), df.format(oldPrice),
-				df.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
+			writeFormatted("FWIMP03", security.getName(), priceFmt.format(oldPrice),
+				priceFmt.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
 
 			new SecurityHandler(security).storeNewPrice(newPrice, importDate);
 			++this.numPricesSet;
 		}
 
 	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal)
+
+	/**
+	 * @param security
+	 * @param latestSnapshot
+	 * @param priceFmt
+	 * @return the price in latestSnapshot
+	 */
+	private double validateCurrentUserRate(CurrencyType security,
+			CurrencySnapshot latestSnapshot, NumberFormat priceFmt) {
+		double price = convRateToPrice(latestSnapshot.getUserRate());
+		double oldPrice = convRateToPrice(security.getUserRate());
+
+		if (price != oldPrice) {
+			security.setUserRate(latestSnapshot.getUserRate());
+
+			System.err.format(this.locale, "Changed security %s current price from %s to %s.%n",
+				security.getName(), priceFmt.format(oldPrice), priceFmt.format(price));
+		}
+
+		return price;
+	} // end validateCurrentUserRate(CurrencyType, CurrencySnapshot, NumberFormat)
 
 	/**
 	 * @param desiredAccountNum
