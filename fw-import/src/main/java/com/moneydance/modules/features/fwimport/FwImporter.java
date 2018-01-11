@@ -14,10 +14,8 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -27,10 +25,10 @@ import java.util.ResourceBundle;
 
 import com.infinitekind.moneydance.model.Account;
 import com.infinitekind.moneydance.model.AccountBook;
-import com.infinitekind.moneydance.model.AcctFilter;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
+import com.johns.moneydance.util.MdUtil;
 
 /**
  * Module used to import Fidelity NetBenefits workplace account data into
@@ -74,7 +72,7 @@ public class FwImporter {
 		 * Apply the stored update.
 		 */
 		public void applyUpdate() {
-			CurrencySnapshot latestSnapshot = getLatestSnapshot(this.security);
+			CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(this.security);
 			this.security.setSnapshotInt(this.newDate, 1 / this.newPrice);
 
 			if (this.newDate >= latestSnapshot.getDateInt()) {
@@ -108,7 +106,6 @@ public class FwImporter {
 	private static final String propertiesFileName = "fw-import.properties";
 	private static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages";
 	private static final char DOUBLE_QUOTE = '"';
-	private static final double [] centMult = {1, 10, 100, 1000, 10000};
 	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
 	private static final int PRICE_FRACTION_DIGITS = 6;
 
@@ -173,7 +170,13 @@ public class FwImporter {
 	 * Import this row of the comma separated value file.
 	 */
 	private void importRow() throws FwiException {
-		Account account = getAccountByInvestNumber(stripQuotes("col.account.num"));
+		Account account = MdUtil.getSubAccountByInvestNumber(this.root,
+			stripQuotes("col.account.num"));
+
+		if (account == null) {
+			// Unable to obtain Moneydance investment account with number [%s].
+			writeFormatted("FWIMP05", stripQuotes("col.account.num"));
+		}
 		CurrencyType security = this.securities
 			.getCurrencyByTickerSymbol(stripQuotes("col.ticker"));
 
@@ -204,11 +207,11 @@ public class FwImporter {
 			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
 		}
 		NumberFormat priceFmt = getCurrencyFormat(price);
-		int importDate = convLocalToDateInt(this.importWindow.getMarketDate());
-		CurrencySnapshot latestSnapshot = getLatestSnapshot(security);
-		validateCurrentUserRate(security, latestSnapshot, priceFmt);
+		int importDate = MdUtil.convLocalToDateInt(this.importWindow.getMarketDate());
+		CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(security);
+		MdUtil.validateCurrentUserRate(security, latestSnapshot, priceFmt);
 		double newPrice = price.doubleValue();
-		double oldPrice = convRateToPrice(importDate < latestSnapshot.getDateInt()
+		double oldPrice = MdUtil.convRateToPrice(importDate < latestSnapshot.getDateInt()
 			? security.getUserRateByDateInt(importDate)
 			: latestSnapshot.getUserRate());
 
@@ -226,68 +229,19 @@ public class FwImporter {
 	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal)
 
 	/**
-	 * @param security
-	 * @param latestSnapshot
-	 * @param priceFmt
-	 * @return the price in latestSnapshot
-	 */
-	private double validateCurrentUserRate(CurrencyType security,
-			CurrencySnapshot latestSnapshot, NumberFormat priceFmt) {
-		double price = convRateToPrice(latestSnapshot.getUserRate());
-		double oldPrice = convRateToPrice(security.getUserRate());
-
-		if (price != oldPrice) {
-			security.setUserRate(latestSnapshot.getUserRate());
-
-			System.err.format(this.locale, "Changed security %s current price from %s to %s.%n",
-				security.getName(), priceFmt.format(oldPrice), priceFmt.format(price));
-		}
-
-		return price;
-	} // end validateCurrentUserRate(CurrencyType, CurrencySnapshot, NumberFormat)
-
-	/**
-	 * @param desiredAccountNum
-	 * @return the Moneydance investment account with the desired number
-	 */
-	private Account getAccountByInvestNumber(String desiredAccountNum) {
-		Account account = null;
-		List<Account> subs = this.root.getSubAccounts(new AcctFilter() {
-			public boolean matches(Account acct) {
-				String accountNum = acct.getInvestAccountNumber();
-
-				return accountNum.equalsIgnoreCase(desiredAccountNum);
-			} // end matches(Account)
-
-			public String format(Account acct) {
-				return acct.getFullAccountName();
-			} // end format(Account)
-		}); // end new AcctFilter() {...}
-
-		if (subs == null || subs.isEmpty()) {
-			// Unable to obtain Moneydance investment account with number [%s].
-			writeFormatted("FWIMP05", desiredAccountNum);
-		} else {
-			account = subs.get(0);
-		}
-
-		return account;
-	} // end getAccountByInvestNumber(String)
-
-	/**
 	 * @param account
 	 */
 	private void verifyAccountBalance(Account account) throws FwiException {
 		if (account != null) {
 			BigDecimal importedBalance = new BigDecimal(stripQuotes("col.value"));
-			double balance = getCurrentBalance(account);
+			double balance = MdUtil.getCurrentBalance(account);
 
 			if (importedBalance.doubleValue() != balance) {
 				// Found a different balance in account %s: have %s, imported %s.
 				// Note: No Moneydance security for ticker symbol [%s] (%s).
-				DecimalFormat df = getCurrencyFormat(importedBalance);
-				writeFormatted("FWIMP02", account.getAccountName(), df.format(balance),
-					df.format(importedBalance), stripQuotes("col.ticker"),
+				NumberFormat cf = getCurrencyFormat(importedBalance);
+				writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
+					cf.format(importedBalance), stripQuotes("col.ticker"),
 					stripQuotes("col.name"));
 			}
 		}
@@ -302,60 +256,24 @@ public class FwImporter {
 	private void verifyShareBalance(Account account, String securityName,
 			BigDecimal importedShares) {
 		if (account != null) {
-			Account secAccount = getSubAccountByName(account, securityName);
+			Account secAccount = MdUtil.getSubAccountByName(account, securityName);
 
-			if (secAccount != null) {
-				double balance = getCurrentBalance(secAccount);
+			if (secAccount == null) {
+				// Unable to obtain Moneydance security [%s] in account %s.
+				writeFormatted("FWIMP06", securityName, account.getAccountName());
+			} else {
+				double balance = MdUtil.getCurrentBalance(secAccount);
 
 				if (importedShares.doubleValue() != balance) {
 					// Found a different %s share balance in account %s: have %s, imported %s.
-					DecimalFormat df = getDecimalFormat(importedShares);
+					NumberFormat nf = getNumberFormat(importedShares);
 					writeFormatted("FWIMP04", secAccount.getAccountName(),
-						account.getAccountName(), df.format(balance), df.format(importedShares));
+						account.getAccountName(), nf.format(balance), nf.format(importedShares));
 				}
 			}
 		}
 
 	} // end verifyShareBalance(Account, String, BigDecimal)
-
-	/**
-	 * @param account
-	 * @return the current account balance
-	 */
-	private static double getCurrentBalance(Account account) {
-		int decimalPlaces = account.getCurrencyType().getDecimalPlaces();
-
-		return account.getUserCurrentBalance() / centMult[decimalPlaces];
-	} // end getCurrentBalance(Account)
-
-	/**
-	 * @param account the parent account
-	 * @param securityName
-	 * @return the Moneydance security subaccount with the specified name
-	 */
-	private Account getSubAccountByName(Account account, String securityName) {
-		Account subAccount = null;
-		List<Account> subs = account.getSubAccounts(new AcctFilter() {
-			public boolean matches(Account acct) {
-				String accountName = acct.getAccountName();
-
-				return accountName.equalsIgnoreCase(securityName);
-			} // end matches(Account)
-
-			public String format(Account acct) {
-				return acct.getFullAccountName();
-			} // end format(Account)
-		}); // end new AcctFilter() {...}
-
-		if (subs == null || subs.isEmpty()) {
-			// Unable to obtain Moneydance security [%s] in account %s.
-			writeFormatted("FWIMP06", securityName, account.getAccountName());
-		} else {
-			subAccount = subs.get(0);
-		}
-
-		return subAccount;
-	} // end getSubAccountByName(Account, String)
 
 	/**
 	 * @param propKey property key for column header
@@ -516,21 +434,7 @@ public class FwImporter {
 	 */
 	private static ResourceBundle getMsgBundle() {
 		if (msgBundle == null) {
-			try {
-				msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
-			} catch (Exception e) {
-				System.err.format("Unable to load message bundle %s. %s%n", baseMessageBundleName, e);
-				msgBundle = new ResourceBundle() {
-					protected Object handleGetObject(String key) {
-						// just use the key since we have no message bundle
-						return key;
-					}
-
-					public Enumeration<String> getKeys() {
-						return null;
-					}
-				}; // end new ResourceBundle() {...}
-			} // end catch
+			msgBundle = MdUtil.getMsgBundle(baseMessageBundleName);
 		}
 
 		return msgBundle;
@@ -579,39 +483,10 @@ public class FwImporter {
 	} // end writeFormatted(String, Object...)
 
 	/**
-	 * @param security
-	 * @return the last currency snap shot for the supplied security
-	 */
-	private static CurrencySnapshot getLatestSnapshot(CurrencyType security) {
-		List<CurrencySnapshot> snapShots = security.getSnapshots();
-
-		return snapShots.get(snapShots.size() - 1);
-	} // end getLatestSnapshot(CurrencyType)
-
-	/**
-	 * @param rate the Moneydance currency rate for a security
-	 * @return the security price rounded to the tenth place past the decimal point
-	 */
-	private static double convRateToPrice(double rate) {
-
-		return roundPrice(1 / rate);
-	} // end convRateToPrice(double)
-
-	/**
-	 * @param price
-	 * @return price rounded to the tenth place past the decimal point
-	 */
-	private static double roundPrice(double price) {
-		BigDecimal bd = BigDecimal.valueOf(price);
-
-		return bd.setScale(10, HALF_EVEN).doubleValue();
-	} // end roundPrice(double)
-
-	/**
 	 * @param amount
-	 * @return a currency decimal format with the number of fraction digits in amount
+	 * @return a currency number format with the number of fraction digits in amount
 	 */
-	private DecimalFormat getCurrencyFormat(BigDecimal amount) {
+	private NumberFormat getCurrencyFormat(BigDecimal amount) {
 		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
 		formatter.setMinimumFractionDigits(amount.scale());
 
@@ -619,26 +494,14 @@ public class FwImporter {
 	} // end getCurrencyFormat(BigDecimal)
 
 	/**
-	 * @param val
-	 * @return a decimal format with the number of fraction digits in val
+	 * @param value
+	 * @return a number format with the number of fraction digits in value
 	 */
-	private DecimalFormat getDecimalFormat(BigDecimal val) {
+	private NumberFormat getNumberFormat(BigDecimal value) {
 		DecimalFormat formatter = (DecimalFormat) NumberFormat.getNumberInstance(this.locale);
-		formatter.setMinimumFractionDigits(val.scale());
+		formatter.setMinimumFractionDigits(value.scale());
 
 		return formatter;
-	} // end getDecimalFormat(BigDecimal)
-
-	/**
-	 * @param date the local date value
-	 * @return the corresponding numeric date value in decimal form YYYYMMDD
-	 */
-	private static int convLocalToDateInt(LocalDate date) {
-		int dateInt = date.getYear() * 10000
-				+ date.getMonthValue() * 100
-				+ date.getDayOfMonth();
-
-		return dateInt;
-	} // end convLocalToDateInt(LocalDate)
+	} // end getNumberFormat(BigDecimal)
 
 } // end class FwImporter
