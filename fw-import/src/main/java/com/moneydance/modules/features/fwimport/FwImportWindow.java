@@ -48,7 +48,6 @@ import com.johns.swing.util.HTMLPane;
 
 public class FwImportWindow extends JFrame implements ActionListener, PropertyChangeListener {
 	private Main feature;
-	private JPanel contentPane;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
 	private JButton btnPriorDay;
@@ -57,7 +56,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private JFormattedTextField txtMarketDate;
 	private JLabel lblDayOfWeek;
 	private JButton btnCommit;
-	private HTMLPane pnOutputlog;
+	private HTMLPane pnOutputLog;
 
 	private static final String FILE_NAME_PREFIX = "Portfolio_Position_";
 	private static final String CHOOSER_TITLE = "Select file to import";
@@ -67,6 +66,8 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 	/**
 	 * Create the frame.
+	 *
+	 * @param feature
 	 */
 	public FwImportWindow(Main feature) {
 		super("Fidelity workplace import");
@@ -83,9 +84,9 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private void initComponents() {
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
 		setSize(576, 356);
-		this.contentPane = new JPanel();
-		this.contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		setContentPane(this.contentPane);
+		JPanel contentPane = new JPanel();
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		setContentPane(contentPane);
 
 		JLabel lblFileToImport = new JLabel("File to import");
 
@@ -125,9 +126,9 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		reducePreferredHeight(this.btnCommit);
 		this.btnCommit.setToolTipText("Commit changes to Moneydance");
 
-		this.pnOutputlog = new HTMLPane();
-		JScrollPane scrollPane = new JScrollPane(this.pnOutputlog);
-		GroupLayout gl_contentPane = new GroupLayout(this.contentPane);
+		this.pnOutputLog = new HTMLPane();
+		JScrollPane scrollPane = new JScrollPane(this.pnOutputLog);
+		GroupLayout gl_contentPane = new GroupLayout(contentPane);
 		gl_contentPane.setHorizontalGroup(
 			gl_contentPane.createParallelGroup(Alignment.LEADING)
 				.addComponent(lblFileToImport)
@@ -174,9 +175,29 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 					.addComponent(scrollPane, DEFAULT_SIZE, 113, Short.MAX_VALUE))
 		);
 		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {this.btnChooseFile, this.btnImport, this.btnCommit});
-		this.contentPane.setLayout(gl_contentPane);
+		contentPane.setLayout(gl_contentPane);
 
 	} // end initComponents()
+
+	/**
+	 * @param button
+	 */
+	private void reducePreferredHeight(JComponent button) {
+		Dimension buttonDim = button.getPreferredSize();
+		Dimension textDim = this.txtFileToImport.getPreferredSize();
+
+		if (buttonDim.height > textDim.height) {
+			buttonDim.height = textDim.height;
+			button.setPreferredSize(buttonDim);
+		}
+		buttonDim = button.getMinimumSize();
+
+		if (buttonDim.height > textDim.height) {
+			buttonDim.height = textDim.height;
+			button.setMinimumSize(buttonDim);
+		}
+
+	} // end reducePreferredHeight(JComponent)
 
 	/**
 	 * Wire in our event listeners.
@@ -335,7 +356,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @param text HTML text to append to the output log text area
 	 */
 	public void addText(String text) {
-		this.pnOutputlog.addText(text);
+		this.pnOutputLog.addText(text);
 
 	} // end addText(String)
 
@@ -343,7 +364,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Clear the output log text area.
 	 */
 	public void clearText() {
-		this.pnOutputlog.clearText();
+		this.pnOutputLog.clearText();
 
 	} // end clearText()
 
@@ -377,26 +398,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		return localDate;
 	} // end asLocalDate(TemporalAccessor)
-
-	/**
-	 * @param button
-	 */
-	private void reducePreferredHeight(JComponent button) {
-		Dimension buttonDim = button.getPreferredSize();
-		Dimension textDim = this.txtFileToImport.getPreferredSize();
-
-		if (buttonDim.height > textDim.height) {
-			buttonDim.height = textDim.height;
-			button.setPreferredSize(buttonDim);
-		}
-		buttonDim = button.getMinimumSize();
-
-		if (buttonDim.height > textDim.height) {
-			buttonDim.height = textDim.height;
-			button.setMinimumSize(buttonDim);
-		}
-
-	} // end reducePreferredHeight(JComponent)
 
 	/**
 	 * @param b true to enable the button, otherwise false
@@ -452,4 +453,5 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		});
 
 	} // end main(String[])
+
 } // end class FwImportWindow

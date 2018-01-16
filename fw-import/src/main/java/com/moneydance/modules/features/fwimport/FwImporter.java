@@ -382,7 +382,7 @@ public class FwImporter {
 	} // end forgetChanges()
 
 	/**
-	 * @return true when the we have uncommitted changes in memory
+	 * @return true when we have uncommitted changes in memory
 	 */
 	public boolean isModified() {
 

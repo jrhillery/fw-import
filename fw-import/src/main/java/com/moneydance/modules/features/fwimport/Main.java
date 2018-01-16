@@ -28,8 +28,7 @@ public class Main extends FeatureModule {
 	 * @see com.moneydance.apps.md.controller.FeatureModule#invoke(java.lang.String)
 	 */
 	public void invoke(String uri) {
-		System.err.println(getName() + " invoked with uri [" + uri + "] and class path "
-				+ System.getProperty("java.class.path"));
+		System.err.println(getName() + " invoked with uri [" + uri + ']');
 		showWindow();
 
 		this.importer = new FwImporter(this.importWindow, getContext().getCurrentAccountBook());
