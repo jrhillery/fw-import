@@ -1,16 +1,16 @@
 /*
- * Created on Nov 10, 2017
+ * Created on Jan 17, 2018
  */
-package com.moneydance.modules.features.fwimport;
+package com.moneydance.modules.features.yqimport;
 
 import com.moneydance.apps.md.controller.FeatureModule;
 
 /**
- * Module used to import Fidelity NetBenefits workplace account data into Moneydance.
+ * Module used to import Yahoo quote data into Moneydance.
  */
 public class Main extends FeatureModule {
-	private FwImportWindow importWindow = null;
-	private FwImporter importer = null;
+	private YqImportWindow importWindow = null;
+	private YqImporter importer = null;
 
 	/**
 	 * Register this module to be invoked via the extensions menu.
@@ -18,7 +18,7 @@ public class Main extends FeatureModule {
 	 * @see com.moneydance.apps.md.controller.FeatureModule#init()
 	 */
 	public void init() {
-		getContext().registerFeature(this, "dofwimport", null, getName());
+		getContext().registerFeature(this, "doyqimport", null, getName());
 
 	} // end init()
 
@@ -31,7 +31,7 @@ public class Main extends FeatureModule {
 		System.err.println(getName() + " invoked with uri [" + uri + ']');
 		showWindow();
 
-		this.importer = new FwImporter(this.importWindow, getContext().getCurrentAccountBook());
+		this.importer = new YqImporter(this.importWindow, getContext().getCurrentAccountBook());
 
 	} // end invoke(String)
 
@@ -81,7 +81,7 @@ public class Main extends FeatureModule {
 
 	public String getName() {
 
-		return "FW Import";
+		return "YQ Import";
 	} // end getName()
 
 	/**
@@ -89,7 +89,7 @@ public class Main extends FeatureModule {
 	 */
 	private synchronized void showWindow() {
 		if (this.importWindow == null) {
-			this.importWindow = new FwImportWindow(this);
+			this.importWindow = new YqImportWindow(this);
 			this.importWindow.setVisible(true);
 		} else {
 			this.importWindow.setVisible(true);

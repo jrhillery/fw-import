@@ -1,0 +1,9 @@
+{
+  "vendor" = "John Hillery"
+  "module_build" = "1"
+  "minbuild" = "1000"
+  "vendor.url" = "http://your.url.here/"
+  "module_name" = "YQ Import"
+  "module_desc" = "<html><body><title>YQ Import</title><p>Module used to import Yahoo&reg; quote data into Moneydance.</p></body></html>"
+  "desc" = "Module used to import Yahoo quote data into Moneydance."
+}

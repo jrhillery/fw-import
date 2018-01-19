@@ -1,10 +1,8 @@
 /*
- * Created on Dec 14, 2017
+ * Created on Jan 17, 2018
  */
-package com.moneydance.modules.features.fwimport;
+package com.moneydance.modules.features.yqimport;
 
-import static java.time.format.FormatStyle.MEDIUM;
-import static java.time.format.TextStyle.SHORT_STANDALONE;
 import static javax.swing.GroupLayout.DEFAULT_SIZE;
 import static javax.swing.GroupLayout.PREFERRED_SIZE;
 
@@ -12,19 +10,11 @@ import java.awt.AWTEvent;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.EventQueue;
-import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.InputStream;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalQueries;
 
 import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
@@ -46,31 +36,24 @@ import javax.swing.text.DefaultFormatter;
 
 import com.johns.swing.util.HTMLPane;
 
-public class FwImportWindow extends JFrame implements ActionListener, PropertyChangeListener {
+public class YqImportWindow extends JFrame implements ActionListener {
 	private Main feature;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
-	private JFormattedTextField txtMarketDate;
-	private JLabel lblDayOfWeek;
-	private JButton btnPriorDay;
-	private JButton btnNextDay;
 	private JButton btnImport;
 	private JButton btnCommit;
 	private HTMLPane pnOutputLog;
 
-	private static final String FILE_NAME_PREFIX = "Portfolio_Position_";
 	private static final String CHOOSER_TITLE = "Select file to import";
-	private static final DateTimeFormatter textFieldDateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
-	private static final DateTimeFormatter fileNameDateFmt = DateTimeFormatter.ofPattern("MMM-d-yyyy");
-	private static final long serialVersionUID = -8092210194674298755L;
+	private static final long serialVersionUID = -1116157696854186533L;
 
 	/**
 	 * Create the frame.
 	 *
 	 * @param feature
 	 */
-	public FwImportWindow(Main feature) {
-		super("Fidelity workplace import");
+	public YqImportWindow(Main feature) {
+		super("Yahoo quote import");
 		this.feature = feature;
 		initComponents();
 		wireEvents();
@@ -100,24 +83,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		reducePreferredHeight(this.btnChooseFile);
 		this.btnChooseFile.setToolTipText("Use file picker to choose");
 
-		JLabel lblMarketDate = new JLabel("Market date");
-
-		this.txtMarketDate = new JFormattedTextField(textFieldDateFmt.toFormat());
-		this.txtMarketDate.setToolTipText("This date will apply to entries in the file");
-		this.txtMarketDate.setText("[Select date]");
-
-		this.lblDayOfWeek = new JLabel("");
-		this.lblDayOfWeek.setFont(this.lblDayOfWeek.getFont()
-			.deriveFont(this.lblDayOfWeek.getFont().getStyle() & ~Font.BOLD));
-
-		this.btnPriorDay = new JButton("<");
-		reducePreferredHeight(this.btnPriorDay);
-		this.btnPriorDay.setToolTipText("Use prior day");
-
-		this.btnNextDay = new JButton(">");
-		reducePreferredHeight(this.btnNextDay);
-		this.btnNextDay.setToolTipText("Use next day");
-
 		this.btnImport = new JButton("Import");
 		reducePreferredHeight(this.btnImport);
 		this.btnImport.setToolTipText("Import data from the specified file");
@@ -139,16 +104,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(this.btnChooseFile))
 				.addGroup(gl_contentPane.createSequentialGroup()
-					.addComponent(lblMarketDate)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.txtMarketDate, PREFERRED_SIZE, 86, PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.lblDayOfWeek, PREFERRED_SIZE, 34, PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.btnPriorDay)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.btnNextDay)
-					.addPreferredGap(ComponentPlacement.RELATED, 94, Short.MAX_VALUE)
+					.addContainerGap()
 					.addComponent(this.btnImport)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(this.btnCommit))
@@ -163,17 +119,11 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 						.addComponent(this.btnChooseFile))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblMarketDate)
-						.addComponent(this.txtMarketDate, PREFERRED_SIZE, DEFAULT_SIZE, PREFERRED_SIZE)
-						.addComponent(this.lblDayOfWeek)
-						.addComponent(this.btnPriorDay)
-						.addComponent(this.btnNextDay)
 						.addComponent(this.btnImport)
 						.addComponent(this.btnCommit))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(scrollPane, DEFAULT_SIZE, 235, Short.MAX_VALUE))
 		);
-		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {lblFileToImport, lblMarketDate});
 		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {this.btnChooseFile, this.btnImport, this.btnCommit});
 		contentPane.setLayout(gl_contentPane);
 
@@ -192,11 +142,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Wire in our event listeners.
 	 */
 	private void wireEvents() {
-		this.txtFileToImport.addPropertyChangeListener("value", this);
 		this.btnChooseFile.addActionListener(this);
-		this.txtMarketDate.addPropertyChangeListener("value", this);
-		this.btnPriorDay.addActionListener(this);
-		this.btnNextDay.addActionListener(this);
 		this.btnImport.addActionListener(this);
 		this.btnCommit.addActionListener(this);
 
@@ -244,22 +190,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 			}
 		}
 
-		if (source == this.btnPriorDay) {
-			LocalDate curDate = getMarketDate();
-
-			if (curDate != null) {
-				setMarketDate(curDate.minusDays(1));
-			}
-		}
-
-		if (source == this.btnNextDay) {
-			LocalDate curDate = getMarketDate();
-
-			if (curDate != null) {
-				setMarketDate(curDate.plusDays(1));
-			}
-		}
-
 		if (source == this.btnImport && this.feature != null) {
 			this.feature.importFile();
 		}
@@ -269,35 +199,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		}
 
 	} // end actionPerformed(ActionEvent)
-
-	/**
-	 * This method gets called when a bound property is changed.
-	 * @param evt a PropertyChangeEvent object describing the event source and the property that has changed.
-	 */
-	public void propertyChange(PropertyChangeEvent evt) {
-		Object source = evt.getSource();
-
-		if (source == this.txtFileToImport) {
-			File fileToImport = getFileToImport();
-
-			if (fileToImport != null) {
-				LocalDate localDate = parseFileNameAsMarketDate(fileToImport.getName());
-
-				if (localDate != null) {
-					setMarketDate(localDate.minusDays(1));
-				}
-			}
-		}
-
-		if (source == this.txtMarketDate) {
-			LocalDate marketDate = getMarketDate();
-
-			if (marketDate != null) {
-				setDayOfWeek(marketDate.getDayOfWeek());
-			}
-		}
-
-	} // end propertyChange(PropertyChangeEvent)
 
 	/**
 	 * @return the file selected to import
@@ -317,31 +218,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end setFileToImport(File)
 
 	/**
-	 * @return the selected market date
-	 */
-	public LocalDate getMarketDate() {
-		TemporalAccessor dateAcc = (TemporalAccessor) this.txtMarketDate.getValue();
-
-		return asLocalDate(dateAcc);
-	} // end getMarketDate()
-
-	/**
-	 * @param localDate
-	 */
-	private void setMarketDate(LocalDate localDate) {
-		this.txtMarketDate.setValue(localDate);
-
-	} // end setMarketDate(LocalDate)
-
-	/**
-	 * @param dayOfWeek
-	 */
-	private void setDayOfWeek(DayOfWeek dayOfWeek) {
-		this.lblDayOfWeek.setText('(' + dayOfWeek.getDisplayName(SHORT_STANDALONE, getLocale()) + ')');
-
-	} // end setDayOfWeek(DayOfWeek)
-
-	/**
 	 * @param text HTML text to append to the output log text area
 	 */
 	public void addText(String text) {
@@ -356,37 +232,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.pnOutputLog.clearText();
 
 	} // end clearText()
-
-	/**
-	 * @param fileName
-	 * @return the date encoded in the file name, if any
-	 */
-	private LocalDate parseFileNameAsMarketDate(String fileName) {
-		LocalDate localDate = null;
-		int dotPos = fileName.indexOf('.');
-
-		if (fileName.startsWith(FILE_NAME_PREFIX) && dotPos > 0) {
-			String dateStr = fileName.substring(FILE_NAME_PREFIX.length(), dotPos);
-			try {
-				localDate = asLocalDate(fileNameDateFmt.parse(dateStr));
-			} catch (Exception e) {
-				// ignore parsing problems
-			}
-		}
-
-		return localDate;
-	} // end parseFileNameAsMarketDate(String)
-
-	/**
-	 * @param dateAcc
-	 * @return the referenced local date
-	 */
-	private LocalDate asLocalDate(TemporalAccessor dateAcc) {
-		LocalDate localDate = dateAcc == null ? null
-				: dateAcc.query(TemporalQueries.localDate());
-
-		return localDate;
-	} // end asLocalDate(TemporalAccessor)
 
 	/**
 	 * @param b true to enable the button, otherwise false
@@ -419,7 +264,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 *
 	 * @return null
 	 */
-	public FwImportWindow goAway() {
+	public YqImportWindow goAway() {
 		setVisible(false);
 		dispose();
 
@@ -433,7 +278,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					FwImportWindow frame = new FwImportWindow(null);
+					YqImportWindow frame = new YqImportWindow(null);
 					frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -443,4 +288,4 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 	} // end main(String[])
 
-} // end class FwImportWindow
+} // end class YqImportWindow
