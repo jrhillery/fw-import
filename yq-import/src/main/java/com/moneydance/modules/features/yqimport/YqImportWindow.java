@@ -14,9 +14,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.InputStream;
 
-import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
@@ -152,19 +150,7 @@ public class YqImportWindow extends JFrame implements ActionListener {
 	 * Read in and set our icon image.
 	 */
 	private void readIconImage() {
-		InputStream stream = getClass().getResourceAsStream("flat-funnel-32.png");
-
-		if (stream != null) {
-			try {
-				setIconImage(ImageIO.read(stream));
-			} catch (Exception e) {
-				System.err.println("Exception reading icon image" + e);
-			} finally {
-				try {
-					stream.close();
-				} catch (Exception e) { /* ignore */ }
-			}
-		}
+		setIconImage(HTMLPane.readResourceImage("flat-funnel-32.png", this));
 
 	} // end readIconImage()
 

@@ -27,97 +27,13 @@ import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.johns.moneydance.util.MdUtil;
+import com.johns.moneydance.util.SecurityHandler;
+import com.johns.moneydance.util.SecurityHandlerCollector;
 
 /**
  * Module used to import Yahoo quote data into Moneydance.
  */
-public class YqImporter {
-
-	/**
-	 * This object handles deferred updates to a Moneydance security.
-	 */
-	private class SecurityHandler {
-		private CurrencyType security;
-
-		private double newPrice = 0;
-		private int newDate = 0;
-		private long newVolume = 0;
-		private double newHighPrice = 0;
-		private double newLowPrice = 0;
-
-		/**
-		 * Sole constructor.
-		 *
-		 * @param security
-		 */
-		public SecurityHandler(CurrencyType security) {
-			this.security = security;
-
-		} // end (CurrencyType) constructor
-
-		/**
-		 * Store a deferred price quote for a specified date integer.
-		 *
-		 * @param newPrice price quote
-		 * @param newDate date integer
-		 */
-		public void storeNewPrice(double newPrice, int newDate) {
-			this.newPrice = newPrice;
-			this.newDate = newDate;
-			YqImporter.this.priceChanges.add(this);
-
-		} // end storeNewPrice(double, int)
-
-		/**
-		 * Store a deferred price quote with volume, high and low prices too.
-		 *
-		 * @param newPrice
-		 * @param newDate
-		 * @param newVolume
-		 * @param newHighPrice
-		 * @param newLowPrice
-		 */
-		public void storeNewPrice(double newPrice, int newDate, long newVolume,
-				double newHighPrice, double newLowPrice) {
-			this.newPrice = newPrice;
-			this.newDate = newDate;
-			this.newVolume = newVolume;
-			this.newHighPrice = newHighPrice;
-			this.newLowPrice = newLowPrice;
-			YqImporter.this.priceChanges.add(this);
-
-		} // end storeNewPrice(double, int, long, double, double)
-
-		/**
-		 * Apply the stored update.
-		 */
-		public void applyUpdate() {
-			CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(this.security);
-			CurrencySnapshot newSnapshot = this.security.setSnapshotInt(this.newDate,
-					1 / this.newPrice);
-
-			if (this.newHighPrice > 0 && this.newLowPrice > 0) {
-				newSnapshot.setDailyVolume(this.newVolume);
-				newSnapshot.setUserDailyHigh(1 / this.newHighPrice);
-				newSnapshot.setUserDailyLow(1 / this.newLowPrice);
-			}
-
-			if (this.newDate >= latestSnapshot.getDateInt()) {
-				this.security.setUserRate(1 / this.newPrice);
-			}
-
-		} // end applyUpdate()
-
-		/**
-		 * @return a string representation of this SecurityHandler
-		 */
-		public String toString() {
-
-			return this.security.getTickerSymbol() + ":" + this.newPrice;
-		} // end toString()
-
-	} // end class SecurityHandler
-
+public class YqImporter implements SecurityHandlerCollector {
 	private YqImportWindow importWindow;
 	private Locale locale;
 	private CurrencyTable securities;
@@ -207,8 +123,7 @@ public class YqImporter {
 	/**
 	 * @param security the Moneydance security to use
 	 */
-	private void storePriceQuoteIfDiff(CurrencyType security)
-			throws YqiException {
+	private void storePriceQuoteIfDiff(CurrencyType security) throws YqiException {
 		BigDecimal price = new BigDecimal(stripQuotes("col.price"));
 
 		NumberFormat priceFmt = getCurrencyFormat(price);
@@ -227,7 +142,7 @@ public class YqImporter {
 			writeFormatted("YQIMP03", security.getName(), priceFmt.format(oldPrice),
 				priceFmt.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
 
-			SecurityHandler securityHandler = new SecurityHandler(security);
+			SecurityHandler securityHandler = new SecurityHandler(security, this);
 			String highPrice = stripQuotes("col.high");
 			String lowPrice = stripQuotes("col.low");
 			String volume = stripQuotes("col.vol");
@@ -237,8 +152,8 @@ public class YqImporter {
 					securityHandler.storeNewPrice(newPrice, importDate, Long.parseLong(volume),
 						Double.parseDouble(highPrice), Double.parseDouble(lowPrice));
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					// Exception parsing quote data (volume [%s], high [%s], low [%s]). %s
+					writeFormatted("YQIMP18", volume, highPrice, lowPrice, e.toString());
 					securityHandler.storeNewPrice(newPrice, importDate);
 				}
 			} else {
@@ -253,14 +168,13 @@ public class YqImporter {
 	 * @param qDate
 	 * @return the numeric date value in decimal form YYYYMMDD
 	 */
-	private int parseDate(String qDate) {
+	private int parseDate(String qDate) throws YqiException {
 		LocalDate lDate;
 		try {
 			lDate = LocalDate.parse(qDate, marketDateFormatter);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			lDate = LocalDate.now();
+			// Exception parsing date from [%s]. %s
+			throw new YqiException(e, "YQIMP17", qDate, e.toString());
 		}
 
 		return MdUtil.convLocalToDateInt(lDate);
@@ -348,6 +262,16 @@ public class YqImporter {
 		} catch (Exception e) { /* ignore */ }
 
 	} // end close(BufferedReader)
+
+	/**
+	 * Add a security handler to our collection.
+	 *
+	 * @param handler
+	 */
+	public void addHandler(SecurityHandler handler) {
+		this.priceChanges.add(handler);
+
+	} // end addHandler(SecurityHandler)
 
 	/**
 	 * Commit any changes to Moneydance.

@@ -29,68 +29,14 @@ import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.johns.moneydance.util.MdUtil;
+import com.johns.moneydance.util.SecurityHandler;
+import com.johns.moneydance.util.SecurityHandlerCollector;
 
 /**
  * Module used to import Fidelity NetBenefits workplace account data into
  * Moneydance.
  */
-public class FwImporter {
-
-	/**
-	 * This object handles deferred updates to a Moneydance security.
-	 */
-	private class SecurityHandler {
-		private CurrencyType security;
-
-		private double newPrice = 0;
-		private int newDate = 0;
-
-		/**
-		 * Sole constructor.
-		 *
-		 * @param security
-		 */
-		public SecurityHandler(CurrencyType security) {
-			this.security = security;
-
-		} // end (CurrencyType) constructor
-
-		/**
-		 * Store a deferred price quote for a specified date integer.
-		 *
-		 * @param newPrice price quote
-		 * @param newDate date integer
-		 */
-		public void storeNewPrice(double newPrice, int newDate) {
-			this.newPrice = newPrice;
-			this.newDate = newDate;
-			FwImporter.this.priceChanges.add(this);
-
-		} // end storeNewPrice(double, int)
-
-		/**
-		 * Apply the stored update.
-		 */
-		public void applyUpdate() {
-			CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(this.security);
-			this.security.setSnapshotInt(this.newDate, 1 / this.newPrice);
-
-			if (this.newDate >= latestSnapshot.getDateInt()) {
-				this.security.setUserRate(1 / this.newPrice);
-			}
-
-		} // end applyUpdate()
-
-		/**
-		 * @return a string representation of this SecurityHandler
-		 */
-		public String toString() {
-
-			return this.security.getTickerSymbol() + ":" + this.newPrice;
-		} // end toString()
-
-	} // end class SecurityHandler
-
+public class FwImporter implements SecurityHandlerCollector {
 	private FwImportWindow importWindow;
 	private Locale locale;
 	private Account root;
@@ -222,7 +168,7 @@ public class FwImporter {
 			writeFormatted("FWIMP03", security.getName(), priceFmt.format(oldPrice),
 				priceFmt.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
 
-			new SecurityHandler(security).storeNewPrice(newPrice, importDate);
+			new SecurityHandler(security, this).storeNewPrice(newPrice, importDate);
 			++this.numPricesSet;
 		}
 
@@ -357,6 +303,16 @@ public class FwImporter {
 		} catch (Exception e) { /* ignore */ }
 
 	} // end close(BufferedReader)
+
+	/**
+	 * Add a security handler to our collection.
+	 *
+	 * @param handler
+	 */
+	public void addHandler(SecurityHandler handler) {
+		this.priceChanges.add(handler);
+
+	} // end addHandler(SecurityHandler)
 
 	/**
 	 * Commit any changes to Moneydance.

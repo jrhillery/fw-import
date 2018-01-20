@@ -19,14 +19,12 @@ import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.io.InputStream;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 
-import javax.imageio.ImageIO;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
@@ -206,19 +204,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Read in and set our icon image.
 	 */
 	private void readIconImage() {
-		InputStream stream = getClass().getResourceAsStream("flat-funnel-32.png");
-
-		if (stream != null) {
-			try {
-				setIconImage(ImageIO.read(stream));
-			} catch (Exception e) {
-				System.err.println("Exception reading icon image" + e);
-			} finally {
-				try {
-					stream.close();
-				} catch (Exception e) { /* ignore */ }
-			}
-		}
+		setIconImage(HTMLPane.readResourceImage("flat-funnel-32.png", this));
 
 	} // end readIconImage()
 
