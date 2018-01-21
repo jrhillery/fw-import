@@ -3,8 +3,8 @@
  */
 package com.moneydance.modules.features.fwimport;
 
-import static com.johns.swing.util.HTMLPane.CL_DECREASE;
-import static com.johns.swing.util.HTMLPane.CL_INCREASE;
+import static com.leastlogic.swing.util.HTMLPane.CL_DECREASE;
+import static com.leastlogic.swing.util.HTMLPane.CL_INCREASE;
 import static java.math.RoundingMode.HALF_EVEN;
 import static java.time.format.FormatStyle.MEDIUM;
 
@@ -28,10 +28,10 @@ import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.johns.moneydance.util.MdUtil;
-import com.johns.moneydance.util.MduException;
-import com.johns.moneydance.util.SecurityHandler;
-import com.johns.moneydance.util.SecurityHandlerCollector;
+import com.leastlogic.moneydance.util.MdUtil;
+import com.leastlogic.moneydance.util.MduException;
+import com.leastlogic.moneydance.util.SecurityHandler;
+import com.leastlogic.moneydance.util.SecurityHandlerCollector;
 
 /**
  * Module used to import Fidelity NetBenefits workplace account data into

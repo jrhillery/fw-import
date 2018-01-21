@@ -3,8 +3,8 @@
  */
 package com.moneydance.modules.features.yqimport;
 
-import static com.johns.swing.util.HTMLPane.CL_DECREASE;
-import static com.johns.swing.util.HTMLPane.CL_INCREASE;
+import static com.leastlogic.swing.util.HTMLPane.CL_DECREASE;
+import static com.leastlogic.swing.util.HTMLPane.CL_INCREASE;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -26,10 +26,10 @@ import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.johns.moneydance.util.MdUtil;
-import com.johns.moneydance.util.MduException;
-import com.johns.moneydance.util.SecurityHandler;
-import com.johns.moneydance.util.SecurityHandlerCollector;
+import com.leastlogic.moneydance.util.MdUtil;
+import com.leastlogic.moneydance.util.MduException;
+import com.leastlogic.moneydance.util.SecurityHandler;
+import com.leastlogic.moneydance.util.SecurityHandlerCollector;
 
 /**
  * Module used to import Yahoo quote data into Moneydance.
