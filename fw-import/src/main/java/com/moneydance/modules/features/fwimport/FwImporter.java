@@ -29,6 +29,7 @@ import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.johns.moneydance.util.MdUtil;
+import com.johns.moneydance.util.MduException;
 import com.johns.moneydance.util.SecurityHandler;
 import com.johns.moneydance.util.SecurityHandlerCollector;
 
@@ -46,8 +47,7 @@ public class FwImporter implements SecurityHandlerCollector {
 	private int numPricesSet = 0;
 	private Map<String, String> csvRowMap = new LinkedHashMap<>();
 	private Properties fwImportProps = null;
-
-	private static ResourceBundle msgBundle = null;
+	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "fw-import.properties";
 	private static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages";
@@ -72,7 +72,7 @@ public class FwImporter implements SecurityHandlerCollector {
 	/**
 	 * Import the selected comma separated value file.
 	 */
-	public void importFile() throws FwiException {
+	public void importFile() throws MduException {
 		if (this.importWindow.getMarketDate() == null) {
 			// Market date must be specified.
 			writeFormatted("FWIMP00");
@@ -94,8 +94,12 @@ public class FwImporter implements SecurityHandlerCollector {
 					if (header != null && values != null) {
 						this.csvRowMap.clear();
 
-						for (int i = 0; i < values.length && i < header.length; ++i) {
-							this.csvRowMap.put(header[i], values[i]);
+						for (int i = 0; i < header.length; ++i) {
+							if (i < values.length) {
+								this.csvRowMap.put(header[i], values[i]);
+							} else {
+								this.csvRowMap.put(header[i], "");
+							}
 						} // end for
 
 						importRow();
@@ -115,7 +119,7 @@ public class FwImporter implements SecurityHandlerCollector {
 	/**
 	 * Import this row of the comma separated value file.
 	 */
-	private void importRow() throws FwiException {
+	private void importRow() throws MduException {
 		Account account = MdUtil.getSubAccountByInvestNumber(this.root,
 			stripQuotes("col.account.num"));
 
@@ -143,7 +147,7 @@ public class FwImporter implements SecurityHandlerCollector {
 	 * @param shares the number of shares included in the value
 	 */
 	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares)
-			throws FwiException {
+			throws MduException {
 		BigDecimal price = new BigDecimal(stripQuotes("col.price"));
 		BigDecimal value = new BigDecimal(stripQuotes("col.value"));
 
@@ -177,7 +181,7 @@ public class FwImporter implements SecurityHandlerCollector {
 	/**
 	 * @param account
 	 */
-	private void verifyAccountBalance(Account account) throws FwiException {
+	private void verifyAccountBalance(Account account) throws MduException {
 		if (account != null) {
 			BigDecimal importedBalance = new BigDecimal(stripQuotes("col.value"));
 			double balance = MdUtil.getCurrentBalance(account);
@@ -225,12 +229,12 @@ public class FwImporter implements SecurityHandlerCollector {
 	 * @param propKey property key for column header
 	 * @return value from the csv row map with any surrounding double quotes removed
 	 */
-	private String stripQuotes(String propKey) throws FwiException {
+	private String stripQuotes(String propKey) throws MduException {
 		String csvColumnKey = getFwImportProps().getProperty(propKey);
 		String val = this.csvRowMap.get(csvColumnKey);
 		if (val == null) {
 			// Unable to locate column %s (%s) in %s. Found columns %s
-			throw new FwiException(null, "FWIMP11", csvColumnKey, propKey,
+			throw asException(null, "FWIMP11", csvColumnKey, propKey,
 				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
 		}
 		int quoteLoc = val.indexOf(DOUBLE_QUOTE);
@@ -267,13 +271,13 @@ public class FwImporter implements SecurityHandlerCollector {
 	 * @param reader
 	 * @return true when the next read will not block for input, false otherwise
 	 */
-	private boolean hasMore(BufferedReader reader) throws FwiException {
+	private boolean hasMore(BufferedReader reader) throws MduException {
 		try {
 
 			return reader.ready();
 		} catch (Exception e) {
 			// Exception checking file %s.
-			throw new FwiException(e, "FWIMP13", this.importWindow.getFileToImport());
+			throw asException(e, "FWIMP13", this.importWindow.getFileToImport());
 		}
 	} // end hasMore(BufferedReader)
 
@@ -281,14 +285,14 @@ public class FwImporter implements SecurityHandlerCollector {
 	 * @param reader
 	 * @return the comma separated tokens from the next line in the file
 	 */
-	private String[] readLine(BufferedReader reader) throws FwiException {
+	private String[] readLine(BufferedReader reader) throws MduException {
 		try {
 			String line = reader.readLine();
 
 			return line == null ? null : line.split(",");
 		} catch (Exception e) {
 			// Exception reading from file %s.
-			throw new FwiException(e, "FWIMP14", this.importWindow.getFileToImport());
+			throw asException(e, "FWIMP14", this.importWindow.getFileToImport());
 		}
 	} // end readLine(BufferedReader)
 
@@ -359,13 +363,13 @@ public class FwImporter implements SecurityHandlerCollector {
 	/**
 	 * @return our properties
 	 */
-	private Properties getFwImportProps() throws FwiException {
+	private Properties getFwImportProps() throws MduException {
 		if (this.fwImportProps == null) {
 			InputStream propsStream = getClass().getClassLoader()
 				.getResourceAsStream(propertiesFileName);
 			if (propsStream == null)
 				// Unable to find %s on the class path.
-				throw new FwiException(null, "FWIMP15", propertiesFileName);
+				throw asException(null, "FWIMP15", propertiesFileName);
 
 			this.fwImportProps = new Properties();
 			try {
@@ -374,7 +378,7 @@ public class FwImporter implements SecurityHandlerCollector {
 				this.fwImportProps = null;
 
 				// Exception loading %s.
-				throw new FwiException(e, "FWIMP16", propertiesFileName);
+				throw asException(e, "FWIMP16", propertiesFileName);
 			} finally {
 				try {
 					propsStream.close();
@@ -388,38 +392,29 @@ public class FwImporter implements SecurityHandlerCollector {
 	/**
 	 * @return our message bundle
 	 */
-	private static ResourceBundle getMsgBundle() {
-		if (msgBundle == null) {
-			msgBundle = MdUtil.getMsgBundle(baseMessageBundleName);
+	private ResourceBundle getMsgBundle() {
+		if (this.msgBundle == null) {
+			this.msgBundle = MdUtil.getMsgBundle(baseMessageBundleName, this.locale);
 		}
 
-		return msgBundle;
+		return this.msgBundle;
 	} // end getMsgBundle()
 
 	/**
-	 * Inner class to house exceptions.
+	 * @param cause Exception that caused this (null if none)
+	 * @param key The resource bundle key (or message)
+	 * @param params Optional parameters for the detail message
 	 */
-	public static class FwiException extends Exception {
+	private MduException asException(Throwable cause, String key, Object... params) {
 
-		private static final long serialVersionUID = -2928482709902784770L;
-
-		/**
-		 * @param cause Exception that caused this (null if none)
-		 * @param key The resource bundle key (or message)
-		 * @param params Optional parameters for the detail message
-		 */
-		public FwiException(Throwable cause, String key, Object... params) {
-			super(String.format(retrieveMessage(key), params), cause);
-
-		} // end (Throwable, String, Object...) constructor
-
-	} // end class FwiException
+		return new MduException(cause, retrieveMessage(key), params);
+	} // end asException(Throwable, String, Object...)
 
 	/**
 	 * @param key The resource bundle key (or message)
 	 * @return message for this key
 	 */
-	private static String retrieveMessage(String key) {
+	private String retrieveMessage(String key) {
 		try {
 
 			return getMsgBundle().getString(key);

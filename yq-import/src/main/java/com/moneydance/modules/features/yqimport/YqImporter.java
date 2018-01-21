@@ -27,6 +27,7 @@ import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.johns.moneydance.util.MdUtil;
+import com.johns.moneydance.util.MduException;
 import com.johns.moneydance.util.SecurityHandler;
 import com.johns.moneydance.util.SecurityHandlerCollector;
 
@@ -42,8 +43,7 @@ public class YqImporter implements SecurityHandlerCollector {
 	private int numPricesSet = 0;
 	private Map<String, String> csvRowMap = new LinkedHashMap<>();
 	private Properties yqImportProps = null;
-
-	private static ResourceBundle msgBundle = null;
+	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "yq-import.properties";
 	private static final String baseMessageBundleName = "com.moneydance.modules.features.yqimport.YqImportMessages";
@@ -66,7 +66,7 @@ public class YqImporter implements SecurityHandlerCollector {
 	/**
 	 * Import the selected comma separated value file.
 	 */
-	public void importFile() throws YqiException {
+	public void importFile() throws MduException {
 		// Importing data from file %s.
 		writeFormatted("YQIMP01", this.importWindow.getFileToImport().getName());
 
@@ -107,7 +107,7 @@ public class YqImporter implements SecurityHandlerCollector {
 	/**
 	 * Import this row of the comma separated value file.
 	 */
-	private void importRow() throws YqiException {
+	private void importRow() throws MduException {
 		CurrencyType security = this.securities
 			.getCurrencyByTickerSymbol(stripQuotes("col.ticker"));
 
@@ -123,7 +123,7 @@ public class YqImporter implements SecurityHandlerCollector {
 	/**
 	 * @param security the Moneydance security to use
 	 */
-	private void storePriceQuoteIfDiff(CurrencyType security) throws YqiException {
+	private void storePriceQuoteIfDiff(CurrencyType security) throws MduException {
 		BigDecimal price = new BigDecimal(stripQuotes("col.price"));
 
 		NumberFormat priceFmt = getCurrencyFormat(price);
@@ -168,13 +168,13 @@ public class YqImporter implements SecurityHandlerCollector {
 	 * @param qDate
 	 * @return the numeric date value in decimal form YYYYMMDD
 	 */
-	private int parseDate(String qDate) throws YqiException {
+	private int parseDate(String qDate) throws MduException {
 		LocalDate lDate;
 		try {
 			lDate = LocalDate.parse(qDate, marketDateFormatter);
 		} catch (Exception e) {
 			// Exception parsing date from [%s]. %s
-			throw new YqiException(e, "YQIMP17", qDate, e.toString());
+			throw asException(e, "YQIMP17", qDate, e.toString());
 		}
 
 		return MdUtil.convLocalToDateInt(lDate);
@@ -184,12 +184,12 @@ public class YqImporter implements SecurityHandlerCollector {
 	 * @param propKey property key for column header
 	 * @return value from the csv row map with any surrounding double quotes removed
 	 */
-	private String stripQuotes(String propKey) throws YqiException {
+	private String stripQuotes(String propKey) throws MduException {
 		String csvColumnKey = getYqImportProps().getProperty(propKey);
 		String val = this.csvRowMap.get(csvColumnKey);
 		if (val == null) {
 			// Unable to locate column %s (%s) in %s. Found columns %s
-			throw new YqiException(null, "YQIMP11", csvColumnKey, propKey,
+			throw asException(null, "YQIMP11", csvColumnKey, propKey,
 				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
 		}
 		int quoteLoc = val.indexOf(DOUBLE_QUOTE);
@@ -226,13 +226,13 @@ public class YqImporter implements SecurityHandlerCollector {
 	 * @param reader
 	 * @return true when the next read will not block for input, false otherwise
 	 */
-	private boolean hasMore(BufferedReader reader) throws YqiException {
+	private boolean hasMore(BufferedReader reader) throws MduException {
 		try {
 
 			return reader.ready();
 		} catch (Exception e) {
 			// Exception checking file %s.
-			throw new YqiException(e, "YQIMP13", this.importWindow.getFileToImport());
+			throw asException(e, "YQIMP13", this.importWindow.getFileToImport());
 		}
 	} // end hasMore(BufferedReader)
 
@@ -240,14 +240,14 @@ public class YqImporter implements SecurityHandlerCollector {
 	 * @param reader
 	 * @return the comma separated tokens from the next line in the file
 	 */
-	private String[] readLine(BufferedReader reader) throws YqiException {
+	private String[] readLine(BufferedReader reader) throws MduException {
 		try {
 			String line = reader.readLine();
 
 			return line == null ? null : line.split(",");
 		} catch (Exception e) {
 			// Exception reading from file %s.
-			throw new YqiException(e, "YQIMP14", this.importWindow.getFileToImport());
+			throw asException(e, "YQIMP14", this.importWindow.getFileToImport());
 		}
 	} // end readLine(BufferedReader)
 
@@ -318,13 +318,13 @@ public class YqImporter implements SecurityHandlerCollector {
 	/**
 	 * @return our properties
 	 */
-	private Properties getYqImportProps() throws YqiException {
+	private Properties getYqImportProps() throws MduException {
 		if (this.yqImportProps == null) {
 			InputStream propsStream = getClass().getClassLoader()
 				.getResourceAsStream(propertiesFileName);
 			if (propsStream == null)
 				// Unable to find %s on the class path.
-				throw new YqiException(null, "YQIMP15", propertiesFileName);
+				throw asException(null, "YQIMP15", propertiesFileName);
 
 			this.yqImportProps = new Properties();
 			try {
@@ -333,7 +333,7 @@ public class YqImporter implements SecurityHandlerCollector {
 				this.yqImportProps = null;
 
 				// Exception loading %s.
-				throw new YqiException(e, "YQIMP16", propertiesFileName);
+				throw asException(e, "YQIMP16", propertiesFileName);
 			} finally {
 				try {
 					propsStream.close();
@@ -347,38 +347,29 @@ public class YqImporter implements SecurityHandlerCollector {
 	/**
 	 * @return our message bundle
 	 */
-	private static ResourceBundle getMsgBundle() {
-		if (msgBundle == null) {
-			msgBundle = MdUtil.getMsgBundle(baseMessageBundleName);
+	private ResourceBundle getMsgBundle() {
+		if (this.msgBundle == null) {
+			this.msgBundle = MdUtil.getMsgBundle(baseMessageBundleName, this.locale);
 		}
 
-		return msgBundle;
+		return this.msgBundle;
 	} // end getMsgBundle()
 
 	/**
-	 * Inner class to house exceptions.
+	 * @param cause Exception that caused this (null if none)
+	 * @param key The resource bundle key (or message)
+	 * @param params Optional parameters for the detail message
 	 */
-	public static class YqiException extends Exception {
+	private MduException asException(Throwable cause, String key, Object... params) {
 
-		private static final long serialVersionUID = 7259141841165838995L;
-
-		/**
-		 * @param cause Exception that caused this (null if none)
-		 * @param key The resource bundle key (or message)
-		 * @param params Optional parameters for the detail message
-		 */
-		public YqiException(Throwable cause, String key, Object... params) {
-			super(String.format(retrieveMessage(key), params), cause);
-
-		} // end (Throwable, String, Object...) constructor
-
-	} // end class YqiException
+		return new MduException(cause, retrieveMessage(key), params);
+	} // end asException(Throwable, String, Object...)
 
 	/**
 	 * @param key The resource bundle key (or message)
 	 * @return message for this key
 	 */
-	private static String retrieveMessage(String key) {
+	private String retrieveMessage(String key) {
 		try {
 
 			return getMsgBundle().getString(key);
