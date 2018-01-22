@@ -6,26 +6,18 @@ package com.moneydance.modules.features.yqimport;
 import static com.leastlogic.swing.util.HTMLPane.CL_DECREASE;
 import static com.leastlogic.swing.util.HTMLPane.CL_INCREASE;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStream;
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
 import java.util.ResourceBundle;
 
 import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
+import com.leastlogic.moneydance.util.CsvProcessor;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 import com.leastlogic.moneydance.util.SecurityHandler;
@@ -34,20 +26,15 @@ import com.leastlogic.moneydance.util.SecurityHandlerCollector;
 /**
  * Module used to import Yahoo quote data into Moneydance.
  */
-public class YqImporter implements SecurityHandlerCollector {
-	private YqImportWindow importWindow;
-	private Locale locale;
+public class YqImporter extends CsvProcessor implements SecurityHandlerCollector {
 	private CurrencyTable securities;
 
-	private List<SecurityHandler> priceChanges = new ArrayList<>();
+	private ArrayList<SecurityHandler> priceChanges = new ArrayList<>();
 	private int numPricesSet = 0;
-	private Map<String, String> csvRowMap = new LinkedHashMap<>();
-	private Properties yqImportProps = null;
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "yq-import.properties";
 	private static final String baseMessageBundleName = "com.moneydance.modules.features.yqimport.YqImportMessages";
-	private static final char DOUBLE_QUOTE = '"';
 	private static final DateTimeFormatter marketDateFormatter = DateTimeFormatter.ofPattern("yyyy/M/d");
 
 	/**
@@ -57,8 +44,7 @@ public class YqImporter implements SecurityHandlerCollector {
 	 * @param accountBook Moneydance account book
 	 */
 	public YqImporter(YqImportWindow importWindow, AccountBook accountBook) {
-		this.importWindow = importWindow;
-		this.locale = importWindow.getLocale();
+		super(importWindow, propertiesFileName);
 		this.securities = accountBook.getCurrencies();
 
 	} // end (YqImportWindow, AccountBook) constructor
@@ -67,36 +53,11 @@ public class YqImporter implements SecurityHandlerCollector {
 	 * Import the selected comma separated value file.
 	 */
 	public void importFile() throws MduException {
-		// Importing data from file %s.
+		// Importing price data from file %s.
 		writeFormatted("YQIMP01", this.importWindow.getFileToImport().getName());
 
-		BufferedReader reader = openFile();
-		if (reader == null)
-			return; // nothing to import
+		processFile();
 
-		try {
-			String[] header = readLine(reader);
-
-			while (hasMore(reader)) {
-				String[] values = readLine(reader);
-
-				if (header != null && values != null) {
-					this.csvRowMap.clear();
-
-					for (int i = 0; i < header.length; ++i) {
-						if (i < values.length) {
-							this.csvRowMap.put(header[i], values[i]);
-						} else {
-							this.csvRowMap.put(header[i], "");
-						}
-					} // end for
-
-					importRow();
-				}
-			} // end while
-		} finally {
-			close(reader);
-		}
 		if (!isModified()) {
 			// No new price data found in %s.
 			writeFormatted("YQIMP08", this.importWindow.getFileToImport().getName());
@@ -107,7 +68,7 @@ public class YqImporter implements SecurityHandlerCollector {
 	/**
 	 * Import this row of the comma separated value file.
 	 */
-	private void importRow() throws MduException {
+	protected void processRow() throws MduException {
 		CurrencyType security = this.securities
 			.getCurrencyByTickerSymbol(stripQuotes("col.ticker"));
 
@@ -118,7 +79,7 @@ public class YqImporter implements SecurityHandlerCollector {
 				stripQuotes("col.ticker"));
 		}
 
-	} // end importRow()
+	} // end processRow()
 
 	/**
 	 * @param security the Moneydance security to use
@@ -181,89 +142,6 @@ public class YqImporter implements SecurityHandlerCollector {
 	} // end parseDate(String)
 
 	/**
-	 * @param propKey property key for column header
-	 * @return value from the csv row map with any surrounding double quotes removed
-	 */
-	private String stripQuotes(String propKey) throws MduException {
-		String csvColumnKey = getYqImportProps().getProperty(propKey);
-		String val = this.csvRowMap.get(csvColumnKey);
-		if (val == null) {
-			// Unable to locate column %s (%s) in %s. Found columns %s
-			throw asException(null, "YQIMP11", csvColumnKey, propKey,
-				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
-		}
-		int quoteLoc = val.indexOf(DOUBLE_QUOTE);
-
-		if (quoteLoc == 0) {
-			// starts with a double quote
-			quoteLoc = val.lastIndexOf(DOUBLE_QUOTE);
-
-			if (quoteLoc == val.length() - 1) {
-				// also ends with a double quote => remove them
-				val = val.substring(1, quoteLoc);
-			}
-		}
-
-		return val.trim();
-	} // end stripQuotes(String)
-
-	/**
-	 * @return a buffered reader to read from the file selected to import
-	 */
-	private BufferedReader openFile() {
-		BufferedReader reader = null;
-		try {
-			reader = new BufferedReader(new FileReader(this.importWindow.getFileToImport()));
-		} catch (Exception e) {
-			// Exception opening file %s. %s
-			writeFormatted("YQIMP12", this.importWindow.getFileToImport(), e);
-		}
-
-		return reader;
-	} // end openFile()
-
-	/**
-	 * @param reader
-	 * @return true when the next read will not block for input, false otherwise
-	 */
-	private boolean hasMore(BufferedReader reader) throws MduException {
-		try {
-
-			return reader.ready();
-		} catch (Exception e) {
-			// Exception checking file %s.
-			throw asException(e, "YQIMP13", this.importWindow.getFileToImport());
-		}
-	} // end hasMore(BufferedReader)
-
-	/**
-	 * @param reader
-	 * @return the comma separated tokens from the next line in the file
-	 */
-	private String[] readLine(BufferedReader reader) throws MduException {
-		try {
-			String line = reader.readLine();
-
-			return line == null ? null : line.split(",");
-		} catch (Exception e) {
-			// Exception reading from file %s.
-			throw asException(e, "YQIMP14", this.importWindow.getFileToImport());
-		}
-	} // end readLine(BufferedReader)
-
-	/**
-	 * Close the specified reader, ignoring any exceptions.
-	 *
-	 * @param reader
-	 */
-	private static void close(BufferedReader reader) {
-		try {
-			reader.close();
-		} catch (Exception e) { /* ignore */ }
-
-	} // end close(BufferedReader)
-
-	/**
 	 * Add a security handler to our collection.
 	 *
 	 * @param handler
@@ -316,35 +194,6 @@ public class YqImporter implements SecurityHandlerCollector {
 	} // end releaseResources()
 
 	/**
-	 * @return our properties
-	 */
-	private Properties getYqImportProps() throws MduException {
-		if (this.yqImportProps == null) {
-			InputStream propsStream = getClass().getClassLoader()
-				.getResourceAsStream(propertiesFileName);
-			if (propsStream == null)
-				// Unable to find %s on the class path.
-				throw asException(null, "YQIMP15", propertiesFileName);
-
-			this.yqImportProps = new Properties();
-			try {
-				this.yqImportProps.load(propsStream);
-			} catch (Exception e) {
-				this.yqImportProps = null;
-
-				// Exception loading %s.
-				throw asException(e, "YQIMP16", propertiesFileName);
-			} finally {
-				try {
-					propsStream.close();
-				} catch (Exception e) { /* ignore */ }
-			}
-		}
-
-		return this.yqImportProps;
-	} // end getYqImportProps()
-
-	/**
 	 * @return our message bundle
 	 */
 	private ResourceBundle getMsgBundle() {
@@ -387,16 +236,5 @@ public class YqImporter implements SecurityHandlerCollector {
 		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
 
 	} // end writeFormatted(String, Object...)
-
-	/**
-	 * @param amount
-	 * @return a currency number format with the number of fraction digits in amount
-	 */
-	private NumberFormat getCurrencyFormat(BigDecimal amount) {
-		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
-		formatter.setMinimumFractionDigits(amount.scale());
-
-		return formatter;
-	} // end getCurrencyFormat(BigDecimal)
 
 } // end class YqImporter

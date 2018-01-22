@@ -38,7 +38,8 @@ http://jakarta.apache.org/ant/index.html
   	</javac>
 
     <jar destfile="${build}/yqimport.mxt">
-      <fileset dir="${src}/src/main/resources" includes="**"/>
+      <fileset dir="${mdutil}/src/main/resources"/>
+      <fileset dir="${src}/src/main/resources"/>
       <fileset dir="${build}" includes="com/**"/>
     </jar>
 

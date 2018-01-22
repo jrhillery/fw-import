@@ -8,19 +8,11 @@ import static com.leastlogic.swing.util.HTMLPane.CL_INCREASE;
 import static java.math.RoundingMode.HALF_EVEN;
 import static java.time.format.FormatStyle.MEDIUM;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.InputStream;
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
 import java.util.ResourceBundle;
 
 import com.infinitekind.moneydance.model.Account;
@@ -28,6 +20,7 @@ import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
+import com.leastlogic.moneydance.util.CsvProcessor;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 import com.leastlogic.moneydance.util.SecurityHandler;
@@ -37,21 +30,17 @@ import com.leastlogic.moneydance.util.SecurityHandlerCollector;
  * Module used to import Fidelity NetBenefits workplace account data into
  * Moneydance.
  */
-public class FwImporter implements SecurityHandlerCollector {
-	private FwImportWindow importWindow;
-	private Locale locale;
+public class FwImporter extends CsvProcessor implements SecurityHandlerCollector {
 	private Account root;
 	private CurrencyTable securities;
 
-	private List<SecurityHandler> priceChanges = new ArrayList<>();
+	private LocalDate marketDate = null;
+	private ArrayList<SecurityHandler> priceChanges = new ArrayList<>();
 	private int numPricesSet = 0;
-	private Map<String, String> csvRowMap = new LinkedHashMap<>();
-	private Properties fwImportProps = null;
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "fw-import.properties";
 	private static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages";
-	private static final char DOUBLE_QUOTE = '"';
 	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
 	private static final int PRICE_FRACTION_DIGITS = 6;
 
@@ -62,8 +51,7 @@ public class FwImporter implements SecurityHandlerCollector {
 	 * @param accountBook Moneydance account book
 	 */
 	public FwImporter(FwImportWindow importWindow, AccountBook accountBook) {
-		this.importWindow = importWindow;
-		this.locale = importWindow.getLocale();
+		super(importWindow, propertiesFileName);
 		this.root = accountBook.getRootAccount();
 		this.securities = accountBook.getCurrencies();
 
@@ -73,41 +61,18 @@ public class FwImporter implements SecurityHandlerCollector {
 	 * Import the selected comma separated value file.
 	 */
 	public void importFile() throws MduException {
-		if (this.importWindow.getMarketDate() == null) {
+		this.marketDate = ((FwImportWindow) this.importWindow).getMarketDate();
+
+		if (this.marketDate == null) {
 			// Market date must be specified.
 			writeFormatted("FWIMP00");
 		} else {
-			// Importing data for %s from file %s.
-			writeFormatted("FWIMP01", this.importWindow.getMarketDate().format(dateFmt),
+			// Importing price data for %s from file %s.
+			writeFormatted("FWIMP01", this.marketDate.format(dateFmt),
 				this.importWindow.getFileToImport().getName());
 
-			BufferedReader reader = openFile();
-			if (reader == null)
-				return; // nothing to import
+			processFile();
 
-			try {
-				String[] header = readLine(reader);
-
-				while (hasMore(reader)) {
-					String[] values = readLine(reader);
-
-					if (header != null && values != null) {
-						this.csvRowMap.clear();
-
-						for (int i = 0; i < header.length; ++i) {
-							if (i < values.length) {
-								this.csvRowMap.put(header[i], values[i]);
-							} else {
-								this.csvRowMap.put(header[i], "");
-							}
-						} // end for
-
-						importRow();
-					}
-				} // end while
-			} finally {
-				close(reader);
-			}
 			if (!isModified()) {
 				// No new price data found in %s.
 				writeFormatted("FWIMP08", this.importWindow.getFileToImport().getName());
@@ -119,7 +84,7 @@ public class FwImporter implements SecurityHandlerCollector {
 	/**
 	 * Import this row of the comma separated value file.
 	 */
-	private void importRow() throws MduException {
+	protected void processRow() throws MduException {
 		Account account = MdUtil.getSubAccountByInvestNumber(this.root,
 			stripQuotes("col.account.num"));
 
@@ -140,7 +105,7 @@ public class FwImporter implements SecurityHandlerCollector {
 			verifyShareBalance(account, security.getName(), shares);
 		}
 
-	} // end importRow()
+	} // end processRow()
 
 	/**
 	 * @param security the Moneydance security to use
@@ -157,7 +122,7 @@ public class FwImporter implements SecurityHandlerCollector {
 			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
 		}
 		NumberFormat priceFmt = getCurrencyFormat(price);
-		int importDate = MdUtil.convLocalToDateInt(this.importWindow.getMarketDate());
+		int importDate = MdUtil.convLocalToDateInt(this.marketDate);
 		CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(security);
 		MdUtil.validateCurrentUserRate(security, latestSnapshot, priceFmt);
 		double newPrice = price.doubleValue();
@@ -226,89 +191,6 @@ public class FwImporter implements SecurityHandlerCollector {
 	} // end verifyShareBalance(Account, String, BigDecimal)
 
 	/**
-	 * @param propKey property key for column header
-	 * @return value from the csv row map with any surrounding double quotes removed
-	 */
-	private String stripQuotes(String propKey) throws MduException {
-		String csvColumnKey = getFwImportProps().getProperty(propKey);
-		String val = this.csvRowMap.get(csvColumnKey);
-		if (val == null) {
-			// Unable to locate column %s (%s) in %s. Found columns %s
-			throw asException(null, "FWIMP11", csvColumnKey, propKey,
-				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
-		}
-		int quoteLoc = val.indexOf(DOUBLE_QUOTE);
-
-		if (quoteLoc == 0) {
-			// starts with a double quote
-			quoteLoc = val.lastIndexOf(DOUBLE_QUOTE);
-
-			if (quoteLoc == val.length() - 1) {
-				// also ends with a double quote => remove them
-				val = val.substring(1, quoteLoc);
-			}
-		}
-
-		return val.trim();
-	} // end stripQuotes(String)
-
-	/**
-	 * @return a buffered reader to read from the file selected to import
-	 */
-	private BufferedReader openFile() {
-		BufferedReader reader = null;
-		try {
-			reader = new BufferedReader(new FileReader(this.importWindow.getFileToImport()));
-		} catch (Exception e) {
-			// Exception opening file %s. %s
-			writeFormatted("FWIMP12", this.importWindow.getFileToImport(), e);
-		}
-
-		return reader;
-	} // end openFile()
-
-	/**
-	 * @param reader
-	 * @return true when the next read will not block for input, false otherwise
-	 */
-	private boolean hasMore(BufferedReader reader) throws MduException {
-		try {
-
-			return reader.ready();
-		} catch (Exception e) {
-			// Exception checking file %s.
-			throw asException(e, "FWIMP13", this.importWindow.getFileToImport());
-		}
-	} // end hasMore(BufferedReader)
-
-	/**
-	 * @param reader
-	 * @return the comma separated tokens from the next line in the file
-	 */
-	private String[] readLine(BufferedReader reader) throws MduException {
-		try {
-			String line = reader.readLine();
-
-			return line == null ? null : line.split(",");
-		} catch (Exception e) {
-			// Exception reading from file %s.
-			throw asException(e, "FWIMP14", this.importWindow.getFileToImport());
-		}
-	} // end readLine(BufferedReader)
-
-	/**
-	 * Close the specified reader, ignoring any exceptions.
-	 *
-	 * @param reader
-	 */
-	private static void close(BufferedReader reader) {
-		try {
-			reader.close();
-		} catch (Exception e) { /* ignore */ }
-
-	} // end close(BufferedReader)
-
-	/**
 	 * Add a security handler to our collection.
 	 *
 	 * @param handler
@@ -361,35 +243,6 @@ public class FwImporter implements SecurityHandlerCollector {
 	} // end releaseResources()
 
 	/**
-	 * @return our properties
-	 */
-	private Properties getFwImportProps() throws MduException {
-		if (this.fwImportProps == null) {
-			InputStream propsStream = getClass().getClassLoader()
-				.getResourceAsStream(propertiesFileName);
-			if (propsStream == null)
-				// Unable to find %s on the class path.
-				throw asException(null, "FWIMP15", propertiesFileName);
-
-			this.fwImportProps = new Properties();
-			try {
-				this.fwImportProps.load(propsStream);
-			} catch (Exception e) {
-				this.fwImportProps = null;
-
-				// Exception loading %s.
-				throw asException(e, "FWIMP16", propertiesFileName);
-			} finally {
-				try {
-					propsStream.close();
-				} catch (Exception e) { /* ignore */ }
-			}
-		}
-
-		return this.fwImportProps;
-	} // end getFwImportProps()
-
-	/**
 	 * @return our message bundle
 	 */
 	private ResourceBundle getMsgBundle() {
@@ -399,16 +252,6 @@ public class FwImporter implements SecurityHandlerCollector {
 
 		return this.msgBundle;
 	} // end getMsgBundle()
-
-	/**
-	 * @param cause Exception that caused this (null if none)
-	 * @param key The resource bundle key (or message)
-	 * @param params Optional parameters for the detail message
-	 */
-	private MduException asException(Throwable cause, String key, Object... params) {
-
-		return new MduException(cause, retrieveMessage(key), params);
-	} // end asException(Throwable, String, Object...)
 
 	/**
 	 * @param key The resource bundle key (or message)
@@ -432,27 +275,5 @@ public class FwImporter implements SecurityHandlerCollector {
 		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
 
 	} // end writeFormatted(String, Object...)
-
-	/**
-	 * @param amount
-	 * @return a currency number format with the number of fraction digits in amount
-	 */
-	private NumberFormat getCurrencyFormat(BigDecimal amount) {
-		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
-		formatter.setMinimumFractionDigits(amount.scale());
-
-		return formatter;
-	} // end getCurrencyFormat(BigDecimal)
-
-	/**
-	 * @param value
-	 * @return a number format with the number of fraction digits in value
-	 */
-	private NumberFormat getNumberFormat(BigDecimal value) {
-		DecimalFormat formatter = (DecimalFormat) NumberFormat.getNumberInstance(this.locale);
-		formatter.setMinimumFractionDigits(value.scale());
-
-		return formatter;
-	} // end getNumberFormat(BigDecimal)
 
 } // end class FwImporter
