@@ -40,7 +40,6 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "fw-import.properties";
-	private static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages";
 	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
 	private static final int PRICE_FRACTION_DIGITS = 6;
 
@@ -247,7 +246,8 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	 */
 	private ResourceBundle getMsgBundle() {
 		if (this.msgBundle == null) {
-			this.msgBundle = MdUtil.getMsgBundle(baseMessageBundleName, this.locale);
+			this.msgBundle = MdUtil.getMsgBundle(FwImportWindow.baseMessageBundleName,
+				this.locale);
 		}
 
 		return this.msgBundle;

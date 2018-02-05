@@ -34,7 +34,6 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "yq-import.properties";
-	private static final String baseMessageBundleName = "com.moneydance.modules.features.yqimport.YqImportMessages";
 	private static final DateTimeFormatter marketDateFormatter = DateTimeFormatter.ofPattern("yyyy/M/d");
 
 	/**
@@ -198,7 +197,8 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	 */
 	private ResourceBundle getMsgBundle() {
 		if (this.msgBundle == null) {
-			this.msgBundle = MdUtil.getMsgBundle(baseMessageBundleName, this.locale);
+			this.msgBundle = MdUtil.getMsgBundle(YqImportWindow.baseMessageBundleName,
+				this.locale);
 		}
 
 		return this.msgBundle;

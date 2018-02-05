@@ -24,6 +24,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
+import java.util.ResourceBundle;
 
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
@@ -57,10 +58,12 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private JButton btnCommit;
 	private HTMLPane pnOutputLog;
 
-	private static final String FILE_NAME_PREFIX = "Portfolio_Position_";
-	private static final String CHOOSER_TITLE = "Select file to import";
+	static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages"; //$NON-NLS-1$
+	private static final ResourceBundle msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
+	private static final String FILE_NAME_PREFIX = "Portfolio_Position_"; //$NON-NLS-1$
+	private static final String CHOOSER_TITLE = msgBundle.getString("FwImportWindow.chooser.title"); //$NON-NLS-1$
 	private static final DateTimeFormatter textFieldDateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
-	private static final DateTimeFormatter fileNameDateFmt = DateTimeFormatter.ofPattern("MMM-d-yyyy");
+	private static final DateTimeFormatter fileNameDateFmt = DateTimeFormatter.ofPattern("MMM-d-yyyy"); //$NON-NLS-1$
 	private static final long serialVersionUID = -8092210194674298755L;
 
 	/**
@@ -69,7 +72,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @param feature
 	 */
 	public FwImportWindow(Main feature) {
-		super("Fidelity workplace import");
+		super(msgBundle.getString("FwImportWindow.window.title")); //$NON-NLS-1$
 		this.feature = feature;
 		initComponents();
 		wireEvents();
@@ -87,44 +90,44 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
 
-		JLabel lblFileToImport = new JLabel("File to import");
+		JLabel lblFileToImport = new JLabel(msgBundle.getString("FwImportWindow.lblFileToImport.text")); //$NON-NLS-1$
 
 		DefaultFormatter formatter = new DefaultFormatter();
 		formatter.setOverwriteMode(false);
 		this.txtFileToImport = new JFormattedTextField(formatter);
-		this.txtFileToImport.setToolTipText("This file will be imported");
+		this.txtFileToImport.setToolTipText(msgBundle.getString("FwImportWindow.txtFileToImport.toolTipText")); //$NON-NLS-1$
 		this.txtFileToImport.setText('[' + CHOOSER_TITLE + ']');
 
-		this.btnChooseFile = new JButton("Choose");
+		this.btnChooseFile = new JButton(msgBundle.getString("FwImportWindow.btnChooseFile.text")); //$NON-NLS-1$
 		reducePreferredHeight(this.btnChooseFile);
-		this.btnChooseFile.setToolTipText("Use file picker to choose");
+		this.btnChooseFile.setToolTipText(msgBundle.getString("FwImportWindow.btnChooseFile.toolTipText")); //$NON-NLS-1$
 
-		JLabel lblMarketDate = new JLabel("Market date");
+		JLabel lblMarketDate = new JLabel(msgBundle.getString("FwImportWindow.lblMarketDate.text")); //$NON-NLS-1$
 
 		this.txtMarketDate = new JFormattedTextField(textFieldDateFmt.toFormat());
-		this.txtMarketDate.setToolTipText("This date will apply to entries in the file");
-		this.txtMarketDate.setText("[Select date]");
+		this.txtMarketDate.setToolTipText(msgBundle.getString("FwImportWindow.txtMarketDate.toolTipText")); //$NON-NLS-1$
+		this.txtMarketDate.setText(msgBundle.getString("FwImportWindow.txtMarketDate.text")); //$NON-NLS-1$
 
-		this.lblDayOfWeek = new JLabel("");
+		this.lblDayOfWeek = new JLabel(""); //$NON-NLS-1$
 		this.lblDayOfWeek.setFont(this.lblDayOfWeek.getFont()
 			.deriveFont(this.lblDayOfWeek.getFont().getStyle() & ~Font.BOLD));
 
-		this.btnPriorDay = new JButton("<");
+		this.btnPriorDay = new JButton("<"); //$NON-NLS-1$
 		reducePreferredHeight(this.btnPriorDay);
-		this.btnPriorDay.setToolTipText("Use prior day");
+		this.btnPriorDay.setToolTipText(msgBundle.getString("FwImportWindow.btnPriorDay.toolTipText")); //$NON-NLS-1$
 
-		this.btnNextDay = new JButton(">");
+		this.btnNextDay = new JButton(">"); //$NON-NLS-1$
 		reducePreferredHeight(this.btnNextDay);
-		this.btnNextDay.setToolTipText("Use next day");
+		this.btnNextDay.setToolTipText(msgBundle.getString("FwImportWindow.btnNextDay.toolTipText")); //$NON-NLS-1$
 
-		this.btnImport = new JButton("Import");
+		this.btnImport = new JButton(msgBundle.getString("FwImportWindow.btnImport.text")); //$NON-NLS-1$
 		reducePreferredHeight(this.btnImport);
-		this.btnImport.setToolTipText("Import data from the specified file");
+		this.btnImport.setToolTipText(msgBundle.getString("FwImportWindow.btnImport.toolTipText")); //$NON-NLS-1$
 
-		this.btnCommit = new JButton("Commit");
+		this.btnCommit = new JButton(msgBundle.getString("FwImportWindow.btnCommit.text")); //$NON-NLS-1$
 		this.btnCommit.setEnabled(false);
 		reducePreferredHeight(this.btnCommit);
-		this.btnCommit.setToolTipText("Commit changes to Moneydance");
+		this.btnCommit.setToolTipText(msgBundle.getString("FwImportWindow.btnCommit.toolTipText")); //$NON-NLS-1$
 
 		this.pnOutputLog = new HTMLPane();
 		JScrollPane scrollPane = new JScrollPane(this.pnOutputLog);
@@ -191,9 +194,9 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Wire in our event listeners.
 	 */
 	private void wireEvents() {
-		this.txtFileToImport.addPropertyChangeListener("value", this);
+		this.txtFileToImport.addPropertyChangeListener("value", this); //$NON-NLS-1$
 		this.btnChooseFile.addActionListener(this);
-		this.txtMarketDate.addPropertyChangeListener("value", this);
+		this.txtMarketDate.addPropertyChangeListener("value", this); //$NON-NLS-1$
 		this.btnPriorDay.addActionListener(this);
 		this.btnNextDay.addActionListener(this);
 		this.btnImport.addActionListener(this);
@@ -205,7 +208,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Read in and set our icon image.
 	 */
 	private void readIconImage() {
-		setIconImage(HTMLPane.readResourceImage("flat-funnel-32.png", this));
+		setIconImage(HTMLPane.readResourceImage("flat-funnel-32.png", this)); //$NON-NLS-1$
 
 	} // end readIconImage()
 
@@ -219,12 +222,12 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		if (source == this.btnChooseFile) {
 			JFileChooser chooser = new JFileChooser(
-					new File(System.getenv("HOMEPATH"), "Downloads"));
+					new File(System.getenv("HOMEPATH"), "Downloads")); //$NON-NLS-1$ //$NON-NLS-2$
 			chooser.setDialogTitle(CHOOSER_TITLE);
-			chooser.setApproveButtonToolTipText("Use the selected file");
+			chooser.setApproveButtonToolTipText(msgBundle.getString("FwImportWindow.approve.toolTipText")); //$NON-NLS-1$
 			chooser.setAcceptAllFileFilterUsed(false);
-			chooser.setFileFilter(new FileNameExtensionFilter("Comma separated value", "csv"));
-			int result = chooser.showDialog(getRootPane(), "Select");
+			chooser.setFileFilter(new FileNameExtensionFilter(msgBundle.getString("FwImportWindow.csv.text"), "csv")); //$NON-NLS-1$ //$NON-NLS-2$
+			int result = chooser.showDialog(getRootPane(), msgBundle.getString("FwImportWindow.approve.text")); //$NON-NLS-1$
 
 			if (result == JFileChooser.APPROVE_OPTION) {
 				setFileToImport(chooser.getSelectedFile());
@@ -292,7 +295,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	public File getFileToImport() {
 		String fileToImport = (String) this.txtFileToImport.getValue();
 
-		return fileToImport == null ? null : new File(fileToImport);
+		return fileToImport == null ? new File("") : new File(fileToImport); //$NON-NLS-1$
 	} // end getFileToImport()
 
 	/**
