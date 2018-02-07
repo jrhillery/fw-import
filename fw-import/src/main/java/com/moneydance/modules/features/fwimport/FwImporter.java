@@ -85,19 +85,18 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	 */
 	protected void processRow() throws MduException {
 		Account account = MdUtil.getSubAccountByInvestNumber(this.root,
-			stripQuotes("col.account.num"));
+			getCol("col.account.num"));
 
 		if (account == null) {
 			// Unable to obtain Moneydance investment account with number [%s].
-			writeFormatted("FWIMP05", stripQuotes("col.account.num"));
+			writeFormatted("FWIMP05", getCol("col.account.num"));
 		}
-		CurrencyType security = this.securities
-			.getCurrencyByTickerSymbol(stripQuotes("col.ticker"));
+		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
 
 		if (security == null) {
 			verifyAccountBalance(account);
 		} else {
-			BigDecimal shares = new BigDecimal(stripQuotes("col.shares"));
+			BigDecimal shares = new BigDecimal(getCol("col.shares"));
 
 			storePriceQuoteIfDiff(security, shares);
 
@@ -107,30 +106,27 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	} // end processRow()
 
 	/**
-	 * @param security the Moneydance security to use
-	 * @param shares the number of shares included in the value
+	 * @param security The Moneydance security to use
+	 * @param shares The number of shares included in the value
 	 */
 	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares)
 			throws MduException {
-		BigDecimal price = new BigDecimal(stripQuotes("col.price"));
-		BigDecimal value = new BigDecimal(stripQuotes("col.value"));
+		BigDecimal price = new BigDecimal(getCol("col.price"));
+		BigDecimal value = new BigDecimal(getCol("col.value"));
 
 		// see if shares * price = value to 2 places past the decimal point
 		if (!shares.multiply(price).setScale(value.scale(), HALF_EVEN).equals(value)) {
 			// no, so get the price to the sixth place past the decimal point
 			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
 		}
-		NumberFormat priceFmt = getCurrencyFormat(price);
 		int importDate = MdUtil.convLocalToDateInt(this.marketDate);
-		CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(security);
-		MdUtil.validateCurrentUserRate(security, latestSnapshot, priceFmt);
+		CurrencySnapshot snapshot = MdUtil.getSnapshotForDate(security, importDate);
 		double newPrice = price.doubleValue();
-		double oldPrice = MdUtil.convRateToPrice(importDate < latestSnapshot.getDateInt()
-			? security.getUserRateByDateInt(importDate)
-			: latestSnapshot.getUserRate());
+		double oldPrice = MdUtil.convRateToPrice(snapshot.getUserRate());
 
-		if (importDate != latestSnapshot.getDateInt() || newPrice != oldPrice) {
+		if (importDate != snapshot.getDateInt() || newPrice != oldPrice) {
 			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
+			NumberFormat priceFmt = getCurrencyFormat(price);
 			String spanCl = newPrice < oldPrice ? CL_DECREASE
 				: newPrice > oldPrice ? CL_INCREASE : "";
 			writeFormatted("FWIMP03", security.getName(), priceFmt.format(oldPrice),
@@ -143,11 +139,11 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal)
 
 	/**
-	 * @param account
+	 * @param account Moneydance account
 	 */
 	private void verifyAccountBalance(Account account) throws MduException {
 		if (account != null) {
-			BigDecimal importedBalance = new BigDecimal(stripQuotes("col.value"));
+			BigDecimal importedBalance = new BigDecimal(getCol("col.value"));
 			double balance = MdUtil.getCurrentBalance(account);
 
 			if (importedBalance.doubleValue() != balance) {
@@ -155,15 +151,14 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 				// Note: No Moneydance security for ticker symbol [%s] (%s).
 				NumberFormat cf = getCurrencyFormat(importedBalance);
 				writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
-					cf.format(importedBalance), stripQuotes("col.ticker"),
-					stripQuotes("col.name"));
+					cf.format(importedBalance), getCol("col.ticker"), getCol("col.name"));
 			}
 		}
 
 	} // end verifyAccountBalance(Account)
 
 	/**
-	 * @param account
+	 * @param account Moneydance account
 	 * @param securityName
 	 * @param importedShares
 	 */

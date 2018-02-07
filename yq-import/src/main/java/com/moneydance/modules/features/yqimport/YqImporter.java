@@ -68,61 +68,68 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	 * Import this row of the comma separated value file.
 	 */
 	protected void processRow() throws MduException {
-		CurrencyType security = this.securities
-			.getCurrencyByTickerSymbol(stripQuotes("col.ticker"));
+		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
 
 		if (security != null) {
 			storePriceQuoteIfDiff(security);
 		} else {
 			System.err.format("No Moneydance security for ticker symbol [%s].",
-				stripQuotes("col.ticker"));
+				getCol("col.ticker"));
 		}
 
 	} // end processRow()
 
 	/**
-	 * @param security the Moneydance security to use
+	 * @param security The Moneydance security to use
 	 */
 	private void storePriceQuoteIfDiff(CurrencyType security) throws MduException {
-		BigDecimal price = new BigDecimal(stripQuotes("col.price"));
+		BigDecimal price = new BigDecimal(getCol("col.price"));
 
-		NumberFormat priceFmt = getCurrencyFormat(price);
-		int importDate = parseDate(stripQuotes("col.date"));
-		CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(security);
-		MdUtil.validateCurrentUserRate(security, latestSnapshot, priceFmt);
+		int importDate = parseDate(getCol("col.date"));
+		CurrencySnapshot snapshot = MdUtil.getSnapshotForDate(security, importDate);
 		double newPrice = price.doubleValue();
-		double oldPrice = MdUtil.convRateToPrice(importDate < latestSnapshot.getDateInt()
-			? security.getUserRateByDateInt(importDate)
-			: latestSnapshot.getUserRate());
+		double oldPrice = MdUtil.convRateToPrice(snapshot.getUserRate());
 
-		if (importDate != latestSnapshot.getDateInt() || newPrice != oldPrice) {
+		if (importDate != snapshot.getDateInt() || newPrice != oldPrice) {
 			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
+			NumberFormat priceFmt = getCurrencyFormat(price);
 			String spanCl = newPrice < oldPrice ? CL_DECREASE
 				: newPrice > oldPrice ? CL_INCREASE : "";
 			writeFormatted("YQIMP03", security.getName(), priceFmt.format(oldPrice),
 				priceFmt.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
 
-			SecurityHandler securityHandler = new SecurityHandler(security, this);
-			String highPrice = stripQuotes("col.high");
-			String lowPrice = stripQuotes("col.low");
-			String volume = stripQuotes("col.vol");
-
-			if (highPrice.length() > 0 && lowPrice.length() > 0 && volume.length() > 0) {
-				try {
-					securityHandler.storeNewPrice(newPrice, importDate, Long.parseLong(volume),
-						Double.parseDouble(highPrice), Double.parseDouble(lowPrice));
-				} catch (Exception e) {
-					// Exception parsing quote data (volume [%s], high [%s], low [%s]). %s
-					writeFormatted("YQIMP18", volume, highPrice, lowPrice, e.toString());
-					securityHandler.storeNewPrice(newPrice, importDate);
-				}
-			} else {
-				securityHandler.storeNewPrice(newPrice, importDate);
-			}
+			storePriceUpdate(security, newPrice, importDate);
 			++this.numPricesSet;
 		}
 
-	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal)
+	} // end storePriceQuoteIfDiff(CurrencyType)
+
+	/**
+	 * @param security The Moneydance security to update
+	 * @param newPrice Price quote
+	 * @param importDate Market date integer
+	 */
+	private void storePriceUpdate(CurrencyType security, double newPrice, int importDate)
+			throws MduException {
+		SecurityHandler securityHandler = new SecurityHandler(security, this);
+		String highPrice = getCol("col.high");
+		String lowPrice = getCol("col.low");
+		String volume = getCol("col.vol");
+
+		if (highPrice.length() > 0 && lowPrice.length() > 0 && volume.length() > 0) {
+			try {
+				securityHandler.storeNewPrice(newPrice, importDate, Long.parseLong(volume),
+					Double.parseDouble(highPrice), Double.parseDouble(lowPrice));
+			} catch (Exception e) {
+				// Exception parsing quote data (volume [%s], high [%s], low [%s]). %s
+				writeFormatted("YQIMP18", volume, highPrice, lowPrice, e.toString());
+				securityHandler.storeNewPrice(newPrice, importDate);
+			}
+		} else {
+			securityHandler.storeNewPrice(newPrice, importDate);
+		}
+
+	} // end storePriceUpdate(CurrencyType, double, int)
 
 	/**
 	 * @param qDate
