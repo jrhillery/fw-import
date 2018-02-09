@@ -100,7 +100,7 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 
 			storePriceQuoteIfDiff(security, shares);
 
-			verifyShareBalance(account, security.getName(), shares);
+			verifyShareBalance(account, security, shares);
 		}
 
 	} // end processRow()
@@ -125,12 +125,13 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 		double oldPrice = MdUtil.convRateToPrice(snapshot.getUserRate());
 
 		if (importDate != snapshot.getDateInt() || newPrice != oldPrice) {
-			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
+			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = getCurrencyFormat(price);
 			String spanCl = newPrice < oldPrice ? CL_DECREASE
 				: newPrice > oldPrice ? CL_INCREASE : "";
-			writeFormatted("FWIMP03", security.getName(), priceFmt.format(oldPrice),
-				priceFmt.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
+			writeFormatted("FWIMP03", security.getName(), security.getTickerSymbol(),
+				priceFmt.format(oldPrice), priceFmt.format(newPrice), spanCl,
+				(newPrice / oldPrice - 1) * 100);
 
 			new SecurityHandler(security, this).storeNewPrice(newPrice, importDate);
 			++this.numPricesSet;
@@ -159,30 +160,32 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 
 	/**
 	 * @param account Moneydance account
-	 * @param securityName
+	 * @param security
 	 * @param importedShares
 	 */
-	private void verifyShareBalance(Account account, String securityName,
+	private void verifyShareBalance(Account account, CurrencyType security,
 			BigDecimal importedShares) {
 		if (account != null) {
-			Account secAccount = MdUtil.getSubAccountByName(account, securityName);
+			Account secAccount = MdUtil.getSubAccountByName(account, security.getName());
 
 			if (secAccount == null) {
-				// Unable to obtain Moneydance security [%s] in account %s.
-				writeFormatted("FWIMP06", securityName, account.getAccountName());
+				// Unable to obtain Moneydance security [%s (%s)] in account %s.
+				writeFormatted("FWIMP06", security.getName(), security.getTickerSymbol(),
+					account.getAccountName());
 			} else {
 				double balance = MdUtil.getCurrentBalance(secAccount);
 
 				if (importedShares.doubleValue() != balance) {
-					// Found a different %s share balance in account %s: have %s, imported %s.
+					// Found a different %s (%s) share balance in account %s: have %s, imported %s.
 					NumberFormat nf = getNumberFormat(importedShares);
 					writeFormatted("FWIMP04", secAccount.getAccountName(),
-						account.getAccountName(), nf.format(balance), nf.format(importedShares));
+						security.getTickerSymbol(), account.getAccountName(), nf.format(balance),
+						nf.format(importedShares));
 				}
 			}
 		}
 
-	} // end verifyShareBalance(Account, String, BigDecimal)
+	} // end verifyShareBalance(Account, CurrencyType, BigDecimal)
 
 	/**
 	 * Add a security handler to our collection.
@@ -218,7 +221,7 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	} // end forgetChanges()
 
 	/**
-	 * @return true when we have uncommitted changes in memory
+	 * @return True when we have uncommitted changes in memory
 	 */
 	public boolean isModified() {
 
@@ -237,7 +240,7 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	} // end releaseResources()
 
 	/**
-	 * @return our message bundle
+	 * @return Our message bundle
 	 */
 	private ResourceBundle getMsgBundle() {
 		if (this.msgBundle == null) {
@@ -250,7 +253,7 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 
 	/**
 	 * @param key The resource bundle key (or message)
-	 * @return message for this key
+	 * @return Message for this key
 	 */
 	private String retrieveMessage(String key) {
 		try {

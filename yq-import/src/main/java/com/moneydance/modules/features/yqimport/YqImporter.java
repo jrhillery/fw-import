@@ -34,7 +34,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "yq-import.properties";
-	private static final DateTimeFormatter marketDateFormatter = DateTimeFormatter.ofPattern("yyyy/M/d");
+	private static final DateTimeFormatter marketDateFmt = DateTimeFormatter.ofPattern("yyyy/M/d");
 
 	/**
 	 * Sole constructor.
@@ -70,11 +70,11 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	protected void processRow() throws MduException {
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
 
-		if (security != null) {
-			storePriceQuoteIfDiff(security);
-		} else {
+		if (security == null) {
 			System.err.format("No Moneydance security for ticker symbol [%s].",
 				getCol("col.ticker"));
+		} else {
+			storePriceQuoteIfDiff(security);
 		}
 
 	} // end processRow()
@@ -91,12 +91,13 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 		double oldPrice = MdUtil.convRateToPrice(snapshot.getUserRate());
 
 		if (importDate != snapshot.getDateInt() || newPrice != oldPrice) {
-			// Change %s price from %s to %s (<span class="%s">%+.2f%%</span>).
+			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = getCurrencyFormat(price);
 			String spanCl = newPrice < oldPrice ? CL_DECREASE
 				: newPrice > oldPrice ? CL_INCREASE : "";
-			writeFormatted("YQIMP03", security.getName(), priceFmt.format(oldPrice),
-				priceFmt.format(newPrice), spanCl, (newPrice / oldPrice - 1) * 100);
+			writeFormatted("YQIMP03", security.getName(), security.getTickerSymbol(),
+				priceFmt.format(oldPrice), priceFmt.format(newPrice), spanCl,
+				(newPrice / oldPrice - 1) * 100);
 
 			storePriceUpdate(security, newPrice, importDate);
 			++this.numPricesSet;
@@ -132,16 +133,16 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	} // end storePriceUpdate(CurrencyType, double, int)
 
 	/**
-	 * @param qDate
-	 * @return the numeric date value in decimal form YYYYMMDD
+	 * @param marketDate The date string to parse
+	 * @return The numeric date value in decimal form YYYYMMDD
 	 */
-	private int parseDate(String qDate) throws MduException {
+	private int parseDate(String marketDate) throws MduException {
 		LocalDate lDate;
 		try {
-			lDate = LocalDate.parse(qDate, marketDateFormatter);
+			lDate = LocalDate.parse(marketDate, marketDateFmt);
 		} catch (Exception e) {
 			// Exception parsing date from [%s]. %s
-			throw asException(e, "YQIMP17", qDate, e.toString());
+			throw asException(e, "YQIMP17", marketDate, e.toString());
 		}
 
 		return MdUtil.convLocalToDateInt(lDate);
@@ -181,7 +182,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	} // end forgetChanges()
 
 	/**
-	 * @return true when we have uncommitted changes in memory
+	 * @return True when we have uncommitted changes in memory
 	 */
 	public boolean isModified() {
 
@@ -200,7 +201,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	} // end releaseResources()
 
 	/**
-	 * @return our message bundle
+	 * @return Our message bundle
 	 */
 	private ResourceBundle getMsgBundle() {
 		if (this.msgBundle == null) {
@@ -223,7 +224,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 
 	/**
 	 * @param key The resource bundle key (or message)
-	 * @return message for this key
+	 * @return Message for this key
 	 */
 	private String retrieveMessage(String key) {
 		try {
