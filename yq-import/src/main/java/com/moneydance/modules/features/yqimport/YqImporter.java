@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.ResourceBundle;
 
 import com.infinitekind.moneydance.model.AccountBook;
@@ -29,7 +29,7 @@ import com.leastlogic.moneydance.util.SecurityHandlerCollector;
 public class YqImporter extends CsvProcessor implements SecurityHandlerCollector {
 	private CurrencyTable securities;
 
-	private ArrayList<SecurityHandler> priceChanges = new ArrayList<>();
+	private LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
 	private int numPricesSet = 0;
 	private ResourceBundle msgBundle = null;
 
@@ -90,7 +90,9 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 		double newPrice = price.doubleValue();
 		double oldPrice = MdUtil.convRateToPrice(snapshot.getUserRate());
 
-		if (importDate != snapshot.getDateInt() || newPrice != oldPrice) {
+		// store this quote if it differs and we don't already have this security
+		if ((importDate != snapshot.getDateInt() || newPrice != oldPrice)
+				&& !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = getCurrencyFormat(price);
 			String spanCl = newPrice < oldPrice ? CL_DECREASE
@@ -154,7 +156,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	 * @param handler
 	 */
 	public void addHandler(SecurityHandler handler) {
-		this.priceChanges.add(handler);
+		this.priceChanges.put(handler.getSecurity(), handler);
 
 	} // end addHandler(SecurityHandler)
 
@@ -162,7 +164,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	 * Commit any changes to Moneydance.
 	 */
 	public void commitChanges() {
-		for (SecurityHandler sHandler : this.priceChanges) {
+		for (SecurityHandler sHandler : this.priceChanges.values()) {
 			sHandler.applyUpdate();
 		}
 		// Changed %d security price%s.
