@@ -22,7 +22,6 @@ import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.leastlogic.mdimport.util.CsvProcessor;
 import com.leastlogic.mdimport.util.SecurityHandler;
-import com.leastlogic.mdimport.util.SecurityHandlerCollector;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 
@@ -30,7 +29,7 @@ import com.leastlogic.moneydance.util.MduException;
  * Module used to import Fidelity NetBenefits workplace account data into
  * Moneydance.
  */
-public class FwImporter extends CsvProcessor implements SecurityHandlerCollector {
+public class FwImporter extends CsvProcessor {
 	private Account root;
 	private CurrencyTable securities;
 
@@ -135,7 +134,7 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 				priceFmt.format(oldPrice), priceFmt.format(newPrice), spanCl,
 				(newPrice / oldPrice - 1) * 100);
 
-			new SecurityHandler(security, this).storeNewPrice(newPrice, importDate);
+			addHandler(new SecurityHandler(security).storeNewPrice(newPrice, importDate));
 			++this.numPricesSet;
 		}
 
@@ -194,7 +193,7 @@ public class FwImporter extends CsvProcessor implements SecurityHandlerCollector
 	 *
 	 * @param handler
 	 */
-	public void addHandler(SecurityHandler handler) {
+	private void addHandler(SecurityHandler handler) {
 		this.priceChanges.put(handler.getSecurity(), handler);
 
 	} // end addHandler(SecurityHandler)

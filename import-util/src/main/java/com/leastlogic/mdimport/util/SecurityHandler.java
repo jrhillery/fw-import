@@ -12,7 +12,6 @@ import com.leastlogic.moneydance.util.MdUtil;
  */
 public class SecurityHandler {
 	private CurrencyType security;
-	private SecurityHandlerCollector handlerCollector;
 
 	private double newPrice = 0;
 	private int newDate = 0;
@@ -23,37 +22,35 @@ public class SecurityHandler {
 	/**
 	 * Sole constructor.
 	 *
-	 * @param security
-	 * @param handlerCollector
+	 * @param security The Moneydance security to handle
 	 */
-	public SecurityHandler(CurrencyType security,
-			SecurityHandlerCollector handlerCollector) {
+	public SecurityHandler(CurrencyType security) {
 		this.security = security;
-		this.handlerCollector = handlerCollector;
 
-	} // end (CurrencyType, SecurityHandlerCollector) constructor
+	} // end (CurrencyType) constructor
 
 	/**
 	 * Store a deferred price quote for a specified date integer.
 	 *
-	 * @param newPrice price quote
-	 * @param newDate date integer
+	 * @param newPrice Price quote
+	 * @param newDate Date integer
+	 * @return This instance
 	 */
-	public void storeNewPrice(double newPrice, int newDate) {
+	public SecurityHandler storeNewPrice(double newPrice, int newDate) {
 		this.newPrice = newPrice;
 		this.newDate = newDate;
-		this.handlerCollector.addHandler(this);
 
+		return this;
 	} // end storeNewPrice(double, int)
 
 	/**
 	 * Store a deferred price quote with volume, high and low prices too.
 	 *
-	 * @param newPrice price quote
-	 * @param newDate date integer
-	 * @param newVolume daily volume
-	 * @param newHighPrice daily high price
-	 * @param newLowPrice daily low price
+	 * @param newPrice Price quote
+	 * @param newDate Date integer
+	 * @param newVolume Daily volume
+	 * @param newHighPrice Daily high price
+	 * @param newLowPrice Daily low price
 	 */
 	public void storeNewPrice(double newPrice, int newDate, long newVolume,
 			double newHighPrice, double newLowPrice) {
@@ -62,7 +59,6 @@ public class SecurityHandler {
 		this.newVolume = newVolume;
 		this.newHighPrice = newHighPrice;
 		this.newLowPrice = newLowPrice;
-		this.handlerCollector.addHandler(this);
 
 	} // end storeNewPrice(double, int, long, double, double)
 

@@ -19,14 +19,13 @@ import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
 import com.leastlogic.mdimport.util.CsvProcessor;
 import com.leastlogic.mdimport.util.SecurityHandler;
-import com.leastlogic.mdimport.util.SecurityHandlerCollector;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 
 /**
  * Module used to import Yahoo quote data into Moneydance.
  */
-public class YqImporter extends CsvProcessor implements SecurityHandlerCollector {
+public class YqImporter extends CsvProcessor {
 	private CurrencyTable securities;
 
 	private LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
@@ -114,7 +113,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	 */
 	private void storePriceUpdate(CurrencyType security, double newPrice, int importDate)
 			throws MduException {
-		SecurityHandler securityHandler = new SecurityHandler(security, this);
+		SecurityHandler securityHandler = new SecurityHandler(security);
 		String highPrice = getCol("col.high");
 		String lowPrice = getCol("col.low");
 		String volume = getCol("col.vol");
@@ -131,6 +130,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 		} else {
 			securityHandler.storeNewPrice(newPrice, importDate);
 		}
+		addHandler(securityHandler);
 
 	} // end storePriceUpdate(CurrencyType, double, int)
 
@@ -155,7 +155,7 @@ public class YqImporter extends CsvProcessor implements SecurityHandlerCollector
 	 *
 	 * @param handler
 	 */
-	public void addHandler(SecurityHandler handler) {
+	private void addHandler(SecurityHandler handler) {
 		this.priceChanges.put(handler.getSecurity(), handler);
 
 	} // end addHandler(SecurityHandler)

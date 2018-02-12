@@ -5,7 +5,6 @@ package com.leastlogic.mdimport.util;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -84,7 +83,7 @@ public abstract class CsvProcessor {
 
 	/**
 	 * @param propKey Property key for column header
-	 * @return value from the csv row map with any surrounding double quotes removed
+	 * @return Value from the csv row map with any surrounding double quotes removed
 	 */
 	protected String getCol(String propKey) throws MduException {
 		String csvColumnKey = getCsvProps().getProperty(propKey);
@@ -110,7 +109,7 @@ public abstract class CsvProcessor {
 	} // end getCol(String)
 
 	/**
-	 * @return a buffered reader to read from the file selected to import
+	 * @return A buffered reader to read from the file selected to import
 	 */
 	private BufferedReader openFile() {
 		BufferedReader reader = null;
@@ -126,7 +125,7 @@ public abstract class CsvProcessor {
 
 	/**
 	 * @param reader
-	 * @return true when the next read will not block for input, false otherwise
+	 * @return True when the next read will not block for input, false otherwise
 	 */
 	private boolean hasMore(BufferedReader reader) throws MduException {
 		try {
@@ -140,7 +139,7 @@ public abstract class CsvProcessor {
 
 	/**
 	 * @param reader
-	 * @return the comma separated tokens from the next line in the file
+	 * @return The comma separated tokens from the next line in the file
 	 */
 	private String[] readLine(BufferedReader reader) throws MduException {
 		try {
@@ -166,36 +165,18 @@ public abstract class CsvProcessor {
 	} // end close(BufferedReader)
 
 	/**
-	 * @return our properties
+	 * @return Our properties
 	 */
 	private Properties getCsvProps() throws MduException {
 		if (this.csvProps == null) {
-			InputStream propsStream = getClass().getClassLoader()
-				.getResourceAsStream(this.propertiesFileName);
-			if (propsStream == null)
-				// Unable to find %s on the class path.
-				throw asException(null, "MDUTL15", this.propertiesFileName);
-
-			this.csvProps = new Properties();
-			try {
-				this.csvProps.load(propsStream);
-			} catch (Exception e) {
-				this.csvProps = null;
-
-				// Exception loading %s.
-				throw asException(e, "MDUTL16", this.propertiesFileName);
-			} finally {
-				try {
-					propsStream.close();
-				} catch (Exception e) { /* ignore */ }
-			}
+			this.csvProps = MdUtil.loadProps(this.propertiesFileName, getClass());
 		}
 
 		return this.csvProps;
 	} // end getCsvProps()
 
 	/**
-	 * @return our message bundle
+	 * @return Our message bundle
 	 */
 	private ResourceBundle getMsgBundle() {
 		if (this.msgBundle == null) {
@@ -217,7 +198,7 @@ public abstract class CsvProcessor {
 
 	/**
 	 * @param key The resource bundle key (or message)
-	 * @return message for this key
+	 * @return Message for this key
 	 */
 	private String retrieveMessage(String key) {
 		try {
@@ -240,7 +221,7 @@ public abstract class CsvProcessor {
 
 	/**
 	 * @param amount
-	 * @return a currency number format with the number of fraction digits in amount
+	 * @return A currency number format with the number of fraction digits in amount
 	 */
 	protected NumberFormat getCurrencyFormat(BigDecimal amount) {
 		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
@@ -256,7 +237,7 @@ public abstract class CsvProcessor {
 
 	/**
 	 * @param value
-	 * @return a number format with the number of fraction digits in value
+	 * @return A number format with the number of fraction digits in value
 	 */
 	protected NumberFormat getNumberFormat(BigDecimal value) {
 		DecimalFormat formatter = (DecimalFormat) NumberFormat.getNumberInstance(this.locale);
