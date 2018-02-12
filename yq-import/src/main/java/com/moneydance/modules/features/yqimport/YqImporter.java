@@ -17,11 +17,11 @@ import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.leastlogic.moneydance.util.CsvProcessor;
+import com.leastlogic.mdimport.util.CsvProcessor;
+import com.leastlogic.mdimport.util.SecurityHandler;
+import com.leastlogic.mdimport.util.SecurityHandlerCollector;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
-import com.leastlogic.moneydance.util.SecurityHandler;
-import com.leastlogic.moneydance.util.SecurityHandlerCollector;
 
 /**
  * Module used to import Yahoo quote data into Moneydance.

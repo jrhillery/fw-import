@@ -33,7 +33,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.DefaultFormatter;
 
-import com.leastlogic.moneydance.util.CsvProcessWindow;
+import com.leastlogic.mdimport.util.CsvProcessWindow;
 import com.leastlogic.swing.util.HTMLPane;
 
 public class YqImportWindow extends JFrame implements ActionListener, CsvProcessWindow {

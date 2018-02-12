@@ -11,5 +11,6 @@
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/swing-util"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/md-util"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/import-util"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

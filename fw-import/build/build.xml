@@ -7,6 +7,7 @@ http://jakarta.apache.org/ant/index.html
   <property name="src" value=".."/>
   <property name="build" value="."/>
   <property name="moneydance.devkit" value="C:/Users/John/Documents/Prog/moneydance-devkit-4.0"/>
+  <property name="importutil" value="${src}/../import-util"/>
   <property name="mdutil" value="${src}/../../mdutil/md-util"/>
   <property name="swingutil" value="${src}/../../mdutil/swing-util"/>
   <property name="privkeyfile" value="${build}/priv_key"/>
@@ -33,12 +34,13 @@ http://jakarta.apache.org/ant/index.html
     <javac debug="${debug}" optimize="${optimize}"
       classpathref="classpath" destdir="${build}">
     	<src path="${src}/src/main/java"/>
+    	<src path="${importutil}/src/main/java"/>
     	<src path="${swingutil}/src/main/java"/>
     	<src path="${mdutil}/src/main/java"/>
   	</javac>
 
     <jar destfile="${build}/fwimport.mxt">
-      <fileset dir="${mdutil}/src/main/resources"/>
+      <fileset dir="${importutil}/src/main/resources"/>
       <fileset dir="${src}/src/main/resources"/>
       <fileset dir="${build}" includes="com/**"/>
     </jar>
