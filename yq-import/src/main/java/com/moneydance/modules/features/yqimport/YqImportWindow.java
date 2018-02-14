@@ -154,7 +154,7 @@ public class YqImportWindow extends JFrame implements ActionListener, CsvProcess
 	 * Read in and set our icon image.
 	 */
 	private void readIconImage() {
-		setIconImage(HTMLPane.readResourceImage("flat-funnel-32.png", this)); //$NON-NLS-1$
+		setIconImage(HTMLPane.readResourceImage("flat-funnel-32.png", getClass())); //$NON-NLS-1$
 
 	} // end readIconImage()
 
