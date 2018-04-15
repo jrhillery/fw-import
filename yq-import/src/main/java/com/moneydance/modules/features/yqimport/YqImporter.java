@@ -70,7 +70,7 @@ public class YqImporter extends CsvProcessor {
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
 
 		if (security == null) {
-			System.err.format("No Moneydance security for ticker symbol [%s].",
+			System.err.format(this.locale, "No Moneydance security for ticker symbol [%s].%n",
 				getCol("col.ticker"));
 		} else {
 			storePriceQuoteIfDiff(security);
