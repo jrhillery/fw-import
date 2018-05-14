@@ -19,7 +19,6 @@ import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
@@ -106,11 +105,13 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		this.txtMarketDate = new JFormattedTextField(textFieldDateFmt.toFormat());
 		this.txtMarketDate.setToolTipText(msgBundle.getString("FwImportWindow.txtMarketDate.toolTipText")); //$NON-NLS-1$
-		this.txtMarketDate.setText(msgBundle.getString("FwImportWindow.txtMarketDate.text")); //$NON-NLS-1$
+		LocalDate today = LocalDate.now();
+		setMarketDate(today);
 
-		this.lblDayOfWeek = new JLabel(""); //$NON-NLS-1$
+		this.lblDayOfWeek = new JLabel();
 		this.lblDayOfWeek.setFont(this.lblDayOfWeek.getFont()
 			.deriveFont(this.lblDayOfWeek.getFont().getStyle() & ~Font.BOLD));
+		setDayOfWeek(today);
 
 		this.btnPriorDay = new JButton("<"); //$NON-NLS-1$
 		reducePreferredHeight(this.btnPriorDay);
@@ -283,7 +284,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 			LocalDate marketDate = getMarketDate();
 
 			if (marketDate != null) {
-				setDayOfWeek(marketDate.getDayOfWeek());
+				setDayOfWeek(marketDate);
 			}
 		}
 
@@ -324,12 +325,13 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end setMarketDate(LocalDate)
 
 	/**
-	 * @param dayOfWeek
+	 * @param marketDate
 	 */
-	private void setDayOfWeek(DayOfWeek dayOfWeek) {
-		this.lblDayOfWeek.setText('(' + dayOfWeek.getDisplayName(SHORT_STANDALONE, getLocale()) + ')');
+	private void setDayOfWeek(LocalDate marketDate) {
+		this.lblDayOfWeek.setText(
+			'(' + marketDate.getDayOfWeek().getDisplayName(SHORT_STANDALONE, getLocale()) + ')');
 
-	} // end setDayOfWeek(DayOfWeek)
+	} // end setDayOfWeek(LocalDate)
 
 	/**
 	 * @param text HTML text to append to the output log text area
