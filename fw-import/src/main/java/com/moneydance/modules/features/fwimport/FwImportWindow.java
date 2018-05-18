@@ -122,6 +122,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.btnNextDay.setToolTipText(msgBundle.getString("FwImportWindow.btnNextDay.toolTipText")); //$NON-NLS-1$
 
 		this.btnImport = new JButton(msgBundle.getString("FwImportWindow.btnImport.text")); //$NON-NLS-1$
+		this.btnImport.setEnabled(false);
 		reducePreferredHeight(this.btnImport);
 		this.btnImport.setToolTipText(msgBundle.getString("FwImportWindow.btnImport.toolTipText")); //$NON-NLS-1$
 
@@ -270,14 +271,12 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		if (source == this.txtFileToImport) {
 			File fileToImport = getFileToImport();
+			LocalDate localDate = parseFileNameAsMarketDate(fileToImport.getName());
 
-			if (fileToImport != null) {
-				LocalDate localDate = parseFileNameAsMarketDate(fileToImport.getName());
-
-				if (localDate != null) {
-					setMarketDate(localDate.minusDays(1));
-				}
+			if (localDate != null) {
+				setMarketDate(localDate.minusDays(1));
 			}
+			this.btnImport.setEnabled(true);
 		}
 
 		if (source == this.txtMarketDate) {

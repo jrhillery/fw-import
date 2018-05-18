@@ -13,6 +13,8 @@ import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.util.ResourceBundle;
 
@@ -36,7 +38,7 @@ import javax.swing.text.DefaultFormatter;
 import com.leastlogic.mdimport.util.CsvProcessWindow;
 import com.leastlogic.swing.util.HTMLPane;
 
-public class YqImportWindow extends JFrame implements ActionListener, CsvProcessWindow {
+public class YqImportWindow extends JFrame implements ActionListener, PropertyChangeListener, CsvProcessWindow {
 	private Main feature;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
@@ -86,6 +88,7 @@ public class YqImportWindow extends JFrame implements ActionListener, CsvProcess
 		this.btnChooseFile.setToolTipText(msgBundle.getString("YqImportWindow.btnChooseFile.toolTipText")); //$NON-NLS-1$
 
 		this.btnImport = new JButton(msgBundle.getString("YqImportWindow.btnImport.text")); //$NON-NLS-1$
+		this.btnImport.setEnabled(false);
 		reducePreferredHeight(this.btnImport);
 		this.btnImport.setToolTipText(msgBundle.getString("YqImportWindow.btnImport.toolTipText")); //$NON-NLS-1$
 
@@ -144,6 +147,7 @@ public class YqImportWindow extends JFrame implements ActionListener, CsvProcess
 	 * Wire in our event listeners.
 	 */
 	private void wireEvents() {
+		this.txtFileToImport.addPropertyChangeListener("value", this); //$NON-NLS-1$
 		this.btnChooseFile.addActionListener(this);
 		this.btnImport.addActionListener(this);
 		this.btnCommit.addActionListener(this);
@@ -189,6 +193,19 @@ public class YqImportWindow extends JFrame implements ActionListener, CsvProcess
 		}
 
 	} // end actionPerformed(ActionEvent)
+
+	/**
+	 * This method gets called when a bound property is changed.
+	 * @param evt a PropertyChangeEvent object describing the event source and the property that has changed.
+	 */
+	public void propertyChange(PropertyChangeEvent evt) {
+		Object source = evt.getSource();
+
+		if (source == this.txtFileToImport) {
+			this.btnImport.setEnabled(true);
+		}
+
+	} // end propertyChange(PropertyChangeEvent)
 
 	/**
 	 * @return the file selected to import
