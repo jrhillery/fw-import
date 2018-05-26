@@ -121,10 +121,10 @@ public class FwImporter extends CsvProcessor {
 		int importDate = MdUtil.convLocalToDateInt(this.marketDate);
 		CurrencySnapshot snapshot = MdUtil.getSnapshotForDate(security, importDate);
 		double newPrice = price.doubleValue();
-		double oldPrice = MdUtil.convRateToPrice(snapshot.getUserRate());
+		double oldPrice = snapshot == null ? 1 : MdUtil.convRateToPrice(snapshot.getUserRate());
 
 		// store this quote if it differs and we don't already have this security
-		if ((importDate != snapshot.getDateInt() || newPrice != oldPrice)
+		if ((snapshot == null || importDate != snapshot.getDateInt() || newPrice != oldPrice)
 				&& !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = getCurrencyFormat(price);

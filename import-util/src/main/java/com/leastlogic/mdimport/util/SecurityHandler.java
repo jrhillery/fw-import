@@ -76,7 +76,7 @@ public class SecurityHandler {
 			newSnapshot.setUserDailyLow(1 / this.newLowPrice);
 		}
 
-		if (this.newDate >= latestSnapshot.getDateInt()) {
+		if (latestSnapshot == null || this.newDate >= latestSnapshot.getDateInt()) {
 			this.security.setUserRate(1 / this.newPrice);
 		}
 
