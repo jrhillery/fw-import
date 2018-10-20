@@ -79,6 +79,7 @@ public class SecurityHandler {
 		if (latestSnapshot == null || this.newDate >= latestSnapshot.getDateInt()) {
 			this.security.setUserRate(1 / this.newPrice);
 		}
+		this.security.syncItem();
 
 	} // end applyUpdate()
 
