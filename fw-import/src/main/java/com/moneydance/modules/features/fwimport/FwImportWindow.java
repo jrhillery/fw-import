@@ -411,6 +411,9 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @return null
 	 */
 	public FwImportWindow goAway() {
+		Dimension winSize = getSize();
+		System.err.format(getLocale(), "Closing with width=%f, height=%f.%n",
+			winSize.getWidth(), winSize.getHeight());
 		setVisible(false);
 		dispose();
 
