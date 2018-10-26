@@ -5,12 +5,13 @@ package com.leastlogic.mdimport.util;
 
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.leastlogic.moneydance.util.MdUtil;
+import com.leastlogic.moneydance.util.SnapshotList;
 
 /**
  * This object handles deferred updates to a Moneydance security.
  */
 public class SecurityHandler {
+	private SnapshotList snapshotList;
 	private CurrencyType security;
 
 	private double newPrice = 0;
@@ -22,12 +23,13 @@ public class SecurityHandler {
 	/**
 	 * Sole constructor.
 	 *
-	 * @param security The Moneydance security to handle
+	 * @param snapshotList The list of snapshots to use
 	 */
-	public SecurityHandler(CurrencyType security) {
-		this.security = security;
+	public SecurityHandler(SnapshotList snapshotList) {
+		this.snapshotList = snapshotList;
+		this.security = snapshotList.getSecurity();
 
-	} // end (CurrencyType) constructor
+	} // end (SnapshotList) constructor
 
 	/**
 	 * Store a deferred price quote for a specified date integer.
@@ -66,7 +68,7 @@ public class SecurityHandler {
 	 * Apply the stored update.
 	 */
 	public void applyUpdate() {
-		CurrencySnapshot latestSnapshot = MdUtil.getLatestSnapshot(this.security);
+		CurrencySnapshot latestSnapshot = this.snapshotList.getLatestSnapshot();
 		CurrencySnapshot newSnapshot = this.security.setSnapshotInt(this.newDate,
 			1 / this.newPrice);
 
@@ -96,7 +98,7 @@ public class SecurityHandler {
 	 */
 	public String toString() {
 
-		return this.security.getTickerSymbol() + ":" + this.newPrice;
+		return this.security.getTickerSymbol() + ':' + this.newPrice;
 	} // end toString()
 
 } // end class SecurityHandler

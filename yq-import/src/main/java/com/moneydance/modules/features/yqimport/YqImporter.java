@@ -21,6 +21,7 @@ import com.leastlogic.mdimport.util.CsvProcessor;
 import com.leastlogic.mdimport.util.SecurityHandler;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
+import com.leastlogic.moneydance.util.SnapshotList;
 
 /**
  * Module used to import Yahoo quote data into Moneydance.
@@ -85,7 +86,8 @@ public class YqImporter extends CsvProcessor {
 		BigDecimal price = new BigDecimal(getCol("col.price"));
 
 		int importDate = parseDate(getCol("col.date"));
-		CurrencySnapshot snapshot = MdUtil.getSnapshotForDate(security, importDate);
+		SnapshotList ssList = new SnapshotList(security);
+		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
 		double newPrice = price.doubleValue();
 		double oldPrice = snapshot == null ? 1 : MdUtil.convRateToPrice(snapshot.getUserRate());
 
@@ -100,20 +102,20 @@ public class YqImporter extends CsvProcessor {
 				priceFmt.format(oldPrice), priceFmt.format(newPrice), spanCl,
 				(newPrice / oldPrice - 1) * 100);
 
-			storePriceUpdate(security, newPrice, importDate);
+			storePriceUpdate(ssList, newPrice, importDate);
 			++this.numPricesSet;
 		}
 
 	} // end storePriceQuoteIfDiff(CurrencyType)
 
 	/**
-	 * @param security The Moneydance security to update
+	 * @param snapshotList The list of snapshots to use for the Moneydance security to update
 	 * @param newPrice Price quote
 	 * @param importDate Market date integer
 	 */
-	private void storePriceUpdate(CurrencyType security, double newPrice, int importDate)
+	private void storePriceUpdate(SnapshotList snapshotList, double newPrice, int importDate)
 			throws MduException {
-		SecurityHandler securityHandler = new SecurityHandler(security);
+		SecurityHandler securityHandler = new SecurityHandler(snapshotList);
 		String highPrice = getCol("col.high");
 		String lowPrice = getCol("col.low");
 		String volume = getCol("col.vol");

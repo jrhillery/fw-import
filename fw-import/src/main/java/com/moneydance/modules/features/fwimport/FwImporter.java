@@ -24,6 +24,7 @@ import com.leastlogic.mdimport.util.CsvProcessor;
 import com.leastlogic.mdimport.util.SecurityHandler;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
+import com.leastlogic.moneydance.util.SnapshotList;
 
 /**
  * Module used to import Fidelity NetBenefits workplace account data into
@@ -119,7 +120,8 @@ public class FwImporter extends CsvProcessor {
 			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
 		}
 		int importDate = MdUtil.convLocalToDateInt(this.marketDate);
-		CurrencySnapshot snapshot = MdUtil.getSnapshotForDate(security, importDate);
+		SnapshotList ssList = new SnapshotList(security);
+		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
 		double newPrice = price.doubleValue();
 		double oldPrice = snapshot == null ? 1 : MdUtil.convRateToPrice(snapshot.getUserRate());
 
@@ -134,7 +136,7 @@ public class FwImporter extends CsvProcessor {
 				priceFmt.format(oldPrice), priceFmt.format(newPrice), spanCl,
 				(newPrice / oldPrice - 1) * 100);
 
-			addHandler(new SecurityHandler(security).storeNewPrice(newPrice, importDate));
+			addHandler(new SecurityHandler(ssList).storeNewPrice(newPrice, importDate));
 			++this.numPricesSet;
 		}
 
