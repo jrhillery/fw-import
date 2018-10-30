@@ -77,11 +77,11 @@ public class SecurityHandler {
 			newSnapshot.setUserDailyHigh(1 / this.newHighPrice);
 			newSnapshot.setUserDailyLow(1 / this.newLowPrice);
 		}
+		newSnapshot.syncItem();
 
 		if (latestSnapshot == null || this.newDate >= latestSnapshot.getDateInt()) {
 			this.security.setUserRate(1 / this.newPrice);
 		}
-		this.security.syncItem();
 
 	} // end applyUpdate()
 
