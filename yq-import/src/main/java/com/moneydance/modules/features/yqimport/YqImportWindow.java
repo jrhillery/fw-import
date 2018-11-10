@@ -272,6 +272,9 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @return null
 	 */
 	public YqImportWindow goAway() {
+		Dimension winSize = getSize();
+		System.err.format(getLocale(), "Closing %s with width=%.0f, height=%.0f.%n",
+			getTitle(), winSize.getWidth(), winSize.getHeight());
 		setVisible(false);
 		dispose();
 
