@@ -29,7 +29,6 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -39,14 +38,15 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.DefaultFormatter;
 
+import com.leastlogic.mdimport.util.CsvChooser;
 import com.leastlogic.mdimport.util.CsvProcessWindow;
 import com.leastlogic.swing.util.HTMLPane;
 
 public class FwImportWindow extends JFrame implements ActionListener, PropertyChangeListener, CsvProcessWindow {
 	private Main feature;
+	private CsvChooser chooser;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
 	private JFormattedTextField txtMarketDate;
@@ -60,7 +60,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages"; //$NON-NLS-1$
 	private static final ResourceBundle msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
 	private static final String FILE_NAME_PREFIX = "Portfolio_Position_"; //$NON-NLS-1$
-	private static final String CHOOSER_TITLE = msgBundle.getString("FwImportWindow.chooser.title"); //$NON-NLS-1$
+	private static final String DEFAULT_FILE_GLOB_PATTERN = FILE_NAME_PREFIX + '*';
 	private static final DateTimeFormatter textFieldDateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
 	private static final DateTimeFormatter fileNameDateFmt = DateTimeFormatter.ofPattern("MMM-d-yyyy"); //$NON-NLS-1$
 	private static final long serialVersionUID = -8092210194674298755L;
@@ -73,6 +73,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	public FwImportWindow(Main feature) {
 		super(msgBundle.getString("FwImportWindow.window.title")); //$NON-NLS-1$
 		this.feature = feature;
+		this.chooser = new CsvChooser(getRootPane());
 		initComponents();
 		wireEvents();
 		readIconImage();
@@ -91,11 +92,16 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		JLabel lblFileToImport = new JLabel(msgBundle.getString("FwImportWindow.lblFileToImport.text")); //$NON-NLS-1$
 
+		File defaultFile = this.chooser.getDefaultFile(DEFAULT_FILE_GLOB_PATTERN);
 		DefaultFormatter formatter = new DefaultFormatter();
 		formatter.setOverwriteMode(false);
 		this.txtFileToImport = new JFormattedTextField(formatter);
 		this.txtFileToImport.setToolTipText(msgBundle.getString("FwImportWindow.txtFileToImport.toolTipText")); //$NON-NLS-1$
-		this.txtFileToImport.setText('[' + CHOOSER_TITLE + ']');
+
+		if (defaultFile != null)
+			this.txtFileToImport.setValue(defaultFile.getPath());
+		else
+			this.txtFileToImport.setText('[' + this.chooser.getTitle() + ']');
 
 		this.btnChooseFile = new JButton(msgBundle.getString("FwImportWindow.btnChooseFile.text")); //$NON-NLS-1$
 		reducePreferredHeight(this.btnChooseFile);
@@ -122,7 +128,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.btnNextDay.setToolTipText(msgBundle.getString("FwImportWindow.btnNextDay.toolTipText")); //$NON-NLS-1$
 
 		this.btnImport = new JButton(msgBundle.getString("FwImportWindow.btnImport.text")); //$NON-NLS-1$
-		this.btnImport.setEnabled(false);
+		this.btnImport.setEnabled(defaultFile != null);
 		reducePreferredHeight(this.btnImport);
 		this.btnImport.setToolTipText(msgBundle.getString("FwImportWindow.btnImport.toolTipText")); //$NON-NLS-1$
 
@@ -223,17 +229,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		Object source = event.getSource();
 
 		if (source == this.btnChooseFile) {
-			JFileChooser chooser = new JFileChooser(
-					new File(System.getenv("HOMEPATH"), "Downloads")); //$NON-NLS-1$ //$NON-NLS-2$
-			chooser.setDialogTitle(CHOOSER_TITLE);
-			chooser.setApproveButtonToolTipText(msgBundle.getString("FwImportWindow.approve.toolTipText")); //$NON-NLS-1$
-			chooser.setAcceptAllFileFilterUsed(false);
-			chooser.setFileFilter(new FileNameExtensionFilter(msgBundle.getString("FwImportWindow.csv.text"), "csv")); //$NON-NLS-1$ //$NON-NLS-2$
-			int result = chooser.showDialog(getRootPane(), msgBundle.getString("FwImportWindow.approve.text")); //$NON-NLS-1$
-
-			if (result == JFileChooser.APPROVE_OPTION) {
-				setFileToImport(chooser.getSelectedFile());
-			}
+			setFileToImport(this.chooser.chooseCsvFile(DEFAULT_FILE_GLOB_PATTERN));
 		}
 
 		if (source == this.btnPriorDay) {
@@ -302,7 +298,9 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @param file
 	 */
 	private void setFileToImport(File file) {
-		this.txtFileToImport.setValue(file.getPath());
+		if (file != null) {
+			this.txtFileToImport.setValue(file.getPath());
+		}
 
 	} // end setFileToImport(File)
 
@@ -374,7 +372,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 */
 	private LocalDate asLocalDate(TemporalAccessor dateAcc) {
 		LocalDate localDate = dateAcc == null ? null
-				: dateAcc.query(TemporalQueries.localDate());
+			: dateAcc.query(TemporalQueries.localDate());
 
 		return localDate;
 	} // end asLocalDate(TemporalAccessor)

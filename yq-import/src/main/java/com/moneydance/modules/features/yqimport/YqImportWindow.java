@@ -22,7 +22,6 @@ import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JFileChooser;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -32,14 +31,15 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.SwingConstants;
 import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.DefaultFormatter;
 
+import com.leastlogic.mdimport.util.CsvChooser;
 import com.leastlogic.mdimport.util.CsvProcessWindow;
 import com.leastlogic.swing.util.HTMLPane;
 
 public class YqImportWindow extends JFrame implements ActionListener, PropertyChangeListener, CsvProcessWindow {
 	private Main feature;
+	private CsvChooser chooser;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
 	private JButton btnImport;
@@ -48,7 +48,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 
 	static final String baseMessageBundleName = "com.moneydance.modules.features.yqimport.YqImportMessages"; //$NON-NLS-1$
 	private static final ResourceBundle msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
-	private static final String CHOOSER_TITLE = msgBundle.getString("YqImportWindow.chooser.title"); //$NON-NLS-1$
+	private static final String DEFAULT_FILE_GLOB_PATTERN = "quotes*"; //$NON-NLS-1$
 	private static final long serialVersionUID = -1116157696854186533L;
 
 	/**
@@ -59,6 +59,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	public YqImportWindow(Main feature) {
 		super(msgBundle.getString("YqImportWindow.window.title")); //$NON-NLS-1$
 		this.feature = feature;
+		this.chooser = new CsvChooser(getRootPane());
 		initComponents();
 		wireEvents();
 		readIconImage();
@@ -77,18 +78,23 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		JLabel lblFileToImport = new JLabel(msgBundle.getString("YqImportWindow.lblFileToImport.text")); //$NON-NLS-1$
 
+		File defaultFile = this.chooser.getDefaultFile(DEFAULT_FILE_GLOB_PATTERN);
 		DefaultFormatter formatter = new DefaultFormatter();
 		formatter.setOverwriteMode(false);
 		this.txtFileToImport = new JFormattedTextField(formatter);
 		this.txtFileToImport.setToolTipText(msgBundle.getString("YqImportWindow.txtFileToImport.toolTipText")); //$NON-NLS-1$
-		this.txtFileToImport.setText('[' + CHOOSER_TITLE + ']');
+
+		if (defaultFile != null)
+			this.txtFileToImport.setValue(defaultFile.getPath());
+		else
+			this.txtFileToImport.setText('[' + this.chooser.getTitle() + ']');
 
 		this.btnChooseFile = new JButton(msgBundle.getString("YqImportWindow.btnChooseFile.text")); //$NON-NLS-1$
 		reducePreferredHeight(this.btnChooseFile);
 		this.btnChooseFile.setToolTipText(msgBundle.getString("YqImportWindow.btnChooseFile.toolTipText")); //$NON-NLS-1$
 
 		this.btnImport = new JButton(msgBundle.getString("YqImportWindow.btnImport.text")); //$NON-NLS-1$
-		this.btnImport.setEnabled(false);
+		this.btnImport.setEnabled(defaultFile != null);
 		reducePreferredHeight(this.btnImport);
 		this.btnImport.setToolTipText(msgBundle.getString("YqImportWindow.btnImport.toolTipText")); //$NON-NLS-1$
 
@@ -171,17 +177,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 		Object source = event.getSource();
 
 		if (source == this.btnChooseFile) {
-			JFileChooser chooser = new JFileChooser(
-					new File(System.getenv("HOMEPATH"), "Downloads")); //$NON-NLS-1$ //$NON-NLS-2$
-			chooser.setDialogTitle(CHOOSER_TITLE);
-			chooser.setApproveButtonToolTipText(msgBundle.getString("YqImportWindow.approve.toolTipText")); //$NON-NLS-1$
-			chooser.setAcceptAllFileFilterUsed(false);
-			chooser.setFileFilter(new FileNameExtensionFilter(msgBundle.getString("YqImportWindow.csv.text"), "csv")); //$NON-NLS-1$ //$NON-NLS-2$
-			int result = chooser.showDialog(getRootPane(), msgBundle.getString("YqImportWindow.approve.text")); //$NON-NLS-1$
-
-			if (result == JFileChooser.APPROVE_OPTION) {
-				setFileToImport(chooser.getSelectedFile());
-			}
+			setFileToImport(this.chooser.chooseCsvFile(DEFAULT_FILE_GLOB_PATTERN));
 		}
 
 		if (source == this.btnImport && this.feature != null) {
@@ -220,7 +216,9 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @param file
 	 */
 	private void setFileToImport(File file) {
-		this.txtFileToImport.setValue(file.getPath());
+		if (file != null) {
+			this.txtFileToImport.setValue(file.getPath());
+		}
 
 	} // end setFileToImport(File)
 
