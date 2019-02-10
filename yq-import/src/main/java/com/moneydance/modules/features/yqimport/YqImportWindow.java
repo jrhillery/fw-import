@@ -82,6 +82,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 		DefaultFormatter formatter = new DefaultFormatter();
 		formatter.setOverwriteMode(false);
 		this.txtFileToImport = new JFormattedTextField(formatter);
+		this.txtFileToImport.setFocusLostBehavior(JFormattedTextField.PERSIST);
 		this.txtFileToImport.setToolTipText(msgBundle.getString("YqImportWindow.txtFileToImport.toolTipText")); //$NON-NLS-1$
 
 		if (defaultFile != null)
