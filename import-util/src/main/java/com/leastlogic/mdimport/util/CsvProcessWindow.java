@@ -3,7 +3,7 @@
  */
 package com.leastlogic.mdimport.util;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Locale;
 
 public interface CsvProcessWindow {
@@ -11,7 +11,7 @@ public interface CsvProcessWindow {
 	/**
 	 * @return The file selected to import
 	 */
-	File getFileToImport();
+	Path getFileToImport();
 
 	/**
 	 * @param Text HTML text to append to the output log text area

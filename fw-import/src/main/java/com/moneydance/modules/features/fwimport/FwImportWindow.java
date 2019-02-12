@@ -18,7 +18,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
@@ -92,7 +93,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		JLabel lblFileToImport = new JLabel(msgBundle.getString("FwImportWindow.lblFileToImport.text")); //$NON-NLS-1$
 
-		File defaultFile = this.chooser.getDefaultFile(DEFAULT_FILE_GLOB_PATTERN);
+		Path defaultFile = this.chooser.getDefaultFile(DEFAULT_FILE_GLOB_PATTERN);
 		DefaultFormatter formatter = new DefaultFormatter();
 		formatter.setOverwriteMode(false);
 		this.txtFileToImport = new JFormattedTextField(formatter);
@@ -100,7 +101,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.txtFileToImport.setToolTipText(msgBundle.getString("FwImportWindow.txtFileToImport.toolTipText")); //$NON-NLS-1$
 
 		if (defaultFile != null)
-			this.txtFileToImport.setValue(defaultFile.getPath());
+			this.txtFileToImport.setValue(defaultFile.toString());
 		else
 			this.txtFileToImport.setText('[' + this.chooser.getTitle() + ']');
 
@@ -112,13 +113,14 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		this.txtMarketDate = new JFormattedTextField(textFieldDateFmt.toFormat());
 		this.txtMarketDate.setToolTipText(msgBundle.getString("FwImportWindow.txtMarketDate.toolTipText")); //$NON-NLS-1$
-		LocalDate today = LocalDate.now();
-		setMarketDate(today);
+
+		if (!useFileNameToSetMarketDate(defaultFile))
+			setMarketDate(LocalDate.now());
 
 		this.lblDayOfWeek = new JLabel();
 		this.lblDayOfWeek.setFont(this.lblDayOfWeek.getFont()
 			.deriveFont(this.lblDayOfWeek.getFont().getStyle() & ~Font.BOLD));
-		setDayOfWeek(today);
+		setDayOfWeek(getMarketDate());
 
 		this.btnPriorDay = new JButton("<"); //$NON-NLS-1$
 		reducePreferredHeight(this.btnPriorDay);
@@ -267,12 +269,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		Object source = evt.getSource();
 
 		if (source == this.txtFileToImport) {
-			File fileToImport = getFileToImport();
-			LocalDate localDate = parseFileNameAsMarketDate(fileToImport.getName());
-
-			if (localDate != null) {
-				setMarketDate(localDate.minusDays(1));
-			}
+			useFileNameToSetMarketDate(getFileToImport());
 			this.btnImport.setEnabled(true);
 		}
 
@@ -287,23 +284,48 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end propertyChange(PropertyChangeEvent)
 
 	/**
+	 * If possible, use the supplied file name to set our market date
+	 *
+	 * @param fileToImport
+	 * @return true when date is set
+	 */
+	private boolean useFileNameToSetMarketDate(Path fileToImport) {
+		boolean dateSet = false;
+
+		if (fileToImport != null) {
+			Path fileNmPath = fileToImport.getFileName();
+
+			if (fileNmPath != null) {
+				LocalDate localDate = parseFileNameAsMarketDate(fileNmPath.toString());
+
+				if (localDate != null) {
+					setMarketDate(localDate.minusDays(1));
+					dateSet = true;
+				}
+			}
+		}
+
+		return dateSet;
+	} // end useFileNameToSetMarketDate(Path)
+
+	/**
 	 * @return the file selected to import
 	 */
-	public File getFileToImport() {
+	public Path getFileToImport() {
 		String fileToImport = (String) this.txtFileToImport.getValue();
 
-		return fileToImport == null ? new File("") : new File(fileToImport); //$NON-NLS-1$
+		return fileToImport == null ? Paths.get("") : Paths.get(fileToImport); //$NON-NLS-1$
 	} // end getFileToImport()
 
 	/**
 	 * @param file
 	 */
-	private void setFileToImport(File file) {
+	private void setFileToImport(Path file) {
 		if (file != null) {
-			this.txtFileToImport.setValue(file.getPath());
+			this.txtFileToImport.setValue(file.toString());
 		}
 
-	} // end setFileToImport(File)
+	} // end setFileToImport(Path)
 
 	/**
 	 * @return the selected market date

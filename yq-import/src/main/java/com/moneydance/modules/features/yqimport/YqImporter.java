@@ -53,13 +53,13 @@ public class YqImporter extends CsvProcessor {
 	 */
 	public void importFile() throws MduException {
 		// Importing price data from file %s.
-		writeFormatted("YQIMP01", this.importWindow.getFileToImport().getName());
+		writeFormatted("YQIMP01", this.importWindow.getFileToImport().getFileName());
 
 		processFile();
 
 		if (!isModified()) {
 			// No new price data found in %s.
-			writeFormatted("YQIMP08", this.importWindow.getFileToImport().getName());
+			writeFormatted("YQIMP08", this.importWindow.getFileToImport().getFileName());
 		}
 
 	} // end importFile()

@@ -68,13 +68,13 @@ public class FwImporter extends CsvProcessor {
 		} else {
 			// Importing price data for %s from file %s.
 			writeFormatted("FWIMP01", this.marketDate.format(dateFmt),
-				this.importWindow.getFileToImport().getName());
+				this.importWindow.getFileToImport().getFileName());
 
 			processFile();
 
 			if (!isModified()) {
 				// No new price data found in %s.
-				writeFormatted("FWIMP08", this.importWindow.getFileToImport().getName());
+				writeFormatted("FWIMP08", this.importWindow.getFileToImport().getFileName());
 			}
 		}
 

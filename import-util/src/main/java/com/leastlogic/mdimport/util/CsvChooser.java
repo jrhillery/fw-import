@@ -4,8 +4,6 @@
 package com.leastlogic.mdimport.util;
 
 import java.awt.Component;
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,10 +26,13 @@ public class CsvChooser {
 	private static final String baseMessageBundleName = "com.leastlogic.mdimport.util.MdUtilMessages";
 	private static final String CSV_EXT = "csv";
 
+	/**
+	 * @param parent root pane
+	 */
 	public CsvChooser(Component parent) {
 		this.parent = parent;
 		this.locale = parent.getLocale();
-		this.defaultDirectory = Paths.get(System.getenv("HOMEPATH"), "Downloads");
+		this.defaultDirectory = Paths.get(System.getProperty("user.home"), "Downloads");
 
 	} // end (Component) constructor
 
@@ -39,7 +40,7 @@ public class CsvChooser {
 	 * @param defaultFileGlobPattern
 	 * @return the selected file, if any
 	 */
-	public File chooseCsvFile(String defaultFileGlobPattern) {
+	public Path chooseCsvFile(String defaultFileGlobPattern) {
 		JFileChooser chooser = new JFileChooser(this.defaultDirectory.toFile());
 		chooser.setDialogTitle(getTitle());
 		chooser.setApproveButtonToolTipText(
@@ -47,22 +48,24 @@ public class CsvChooser {
 		chooser.setAcceptAllFileFilterUsed(false);
 		chooser.setFileFilter(new FileNameExtensionFilter(
 			getMsgBundle().getString("CsvChooser.csv.text"), CSV_EXT));
-		File defaultFile = getDefaultFile(defaultFileGlobPattern);
+		Path defaultFile = getDefaultFile(defaultFileGlobPattern);
 
 		if (defaultFile != null) {
-			chooser.setSelectedFile(defaultFile);
+			chooser.setSelectedFile(defaultFile.toFile());
 		}
 		int result = chooser.showDialog(this.parent,
 			getMsgBundle().getString("CsvChooser.approve.text"));
 
-		return result == JFileChooser.APPROVE_OPTION ? chooser.getSelectedFile() : null;
+		return result == JFileChooser.APPROVE_OPTION
+			? chooser.getSelectedFile().toPath()
+			: null;
 	} // end chooseCsvFile(String)
 
 	/**
 	 * @param defaultFileGlobPattern
 	 * @return the default file, if a unique one exists matching the supplied glob pattern
 	 */
-	public File getDefaultFile(String defaultFileGlobPattern) {
+	public Path getDefaultFile(String defaultFileGlobPattern) {
 		Path foundOne = null;
 		int numFound = 0;
 
@@ -73,11 +76,11 @@ public class CsvChooser {
 				foundOne = path;
 				++numFound;
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace(System.err);
 		}
 
-		return numFound == 1 ? foundOne.toFile() : null;
+		return numFound == 1 ? foundOne : null;
 	} // end getDefaultFile(String)
 
 	/**

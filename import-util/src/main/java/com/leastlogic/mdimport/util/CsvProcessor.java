@@ -4,8 +4,8 @@
 package com.leastlogic.mdimport.util;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.LinkedHashMap;
@@ -114,7 +114,7 @@ public abstract class CsvProcessor {
 	private BufferedReader openFile() {
 		BufferedReader reader = null;
 		try {
-			reader = new BufferedReader(new FileReader(this.importWindow.getFileToImport()));
+			reader = Files.newBufferedReader(this.importWindow.getFileToImport());
 		} catch (Exception e) {
 			// Exception opening file %s. %s
 			writeFormatted("MDUTL12", this.importWindow.getFileToImport(), e);

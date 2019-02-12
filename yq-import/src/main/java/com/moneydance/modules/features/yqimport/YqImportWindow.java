@@ -15,7 +15,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ResourceBundle;
 
 import javax.swing.GroupLayout;
@@ -78,7 +79,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		JLabel lblFileToImport = new JLabel(msgBundle.getString("YqImportWindow.lblFileToImport.text")); //$NON-NLS-1$
 
-		File defaultFile = this.chooser.getDefaultFile(DEFAULT_FILE_GLOB_PATTERN);
+		Path defaultFile = this.chooser.getDefaultFile(DEFAULT_FILE_GLOB_PATTERN);
 		DefaultFormatter formatter = new DefaultFormatter();
 		formatter.setOverwriteMode(false);
 		this.txtFileToImport = new JFormattedTextField(formatter);
@@ -86,7 +87,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.txtFileToImport.setToolTipText(msgBundle.getString("YqImportWindow.txtFileToImport.toolTipText")); //$NON-NLS-1$
 
 		if (defaultFile != null)
-			this.txtFileToImport.setValue(defaultFile.getPath());
+			this.txtFileToImport.setValue(defaultFile.toString());
 		else
 			this.txtFileToImport.setText('[' + this.chooser.getTitle() + ']');
 
@@ -207,21 +208,21 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	/**
 	 * @return the file selected to import
 	 */
-	public File getFileToImport() {
+	public Path getFileToImport() {
 		String fileToImport = (String) this.txtFileToImport.getValue();
 
-		return fileToImport == null ? new File("") : new File(fileToImport); //$NON-NLS-1$
+		return fileToImport == null ? Paths.get("") : Paths.get(fileToImport); //$NON-NLS-1$
 	} // end getFileToImport()
 
 	/**
 	 * @param file
 	 */
-	private void setFileToImport(File file) {
+	private void setFileToImport(Path file) {
 		if (file != null) {
-			this.txtFileToImport.setValue(file.getPath());
+			this.txtFileToImport.setValue(file.toString());
 		}
 
-	} // end setFileToImport(File)
+	} // end setFileToImport(Path)
 
 	/**
 	 * @param text HTML text to append to the output log text area
