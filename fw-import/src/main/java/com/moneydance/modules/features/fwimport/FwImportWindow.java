@@ -22,8 +22,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAccessor;
-import java.time.temporal.TemporalQueries;
 import java.util.ResourceBundle;
 
 import javax.swing.GroupLayout;
@@ -331,9 +329,8 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @return the selected market date
 	 */
 	public LocalDate getMarketDate() {
-		TemporalAccessor dateAcc = (TemporalAccessor) this.txtMarketDate.getValue();
 
-		return asLocalDate(dateAcc);
+		return (LocalDate) this.txtMarketDate.getValue();
 	} // end getMarketDate()
 
 	/**
@@ -380,7 +377,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		if (fileName.startsWith(FILE_NAME_PREFIX) && dotPos > 0) {
 			String dateStr = fileName.substring(FILE_NAME_PREFIX.length(), dotPos);
 			try {
-				localDate = asLocalDate(fileNameDateFmt.parse(dateStr));
+				localDate = fileNameDateFmt.parse(dateStr, LocalDate::from);
 			} catch (Exception e) {
 				// ignore parsing problems
 			}
@@ -388,17 +385,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		return localDate;
 	} // end parseFileNameAsMarketDate(String)
-
-	/**
-	 * @param dateAcc
-	 * @return the referenced local date
-	 */
-	private LocalDate asLocalDate(TemporalAccessor dateAcc) {
-		LocalDate localDate = dateAcc == null ? null
-			: dateAcc.query(TemporalQueries.localDate());
-
-		return localDate;
-	} // end asLocalDate(TemporalAccessor)
 
 	/**
 	 * @param b true to enable the button, otherwise false
