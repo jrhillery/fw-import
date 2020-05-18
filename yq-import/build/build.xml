@@ -59,7 +59,7 @@ http://jakarta.apache.org/ant/index.html
     <move file="s-yqimport.mxt" tofile="${dist}/yqimport.mxt"/>
   </target>
 
-  <target name="genkeys" depends="init">
+  <target name="genkeys">
     <java 
       inputstring="yqimport's passphrase"
       classpathref="classpath"

@@ -14,7 +14,7 @@ public interface CsvProcessWindow {
 	Path getFileToImport();
 
 	/**
-	 * @param Text HTML text to append to the output log text area
+	 * @param text HTML text to append to the output log text area
 	 */
 	void addText(String text);
 
