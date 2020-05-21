@@ -148,9 +148,9 @@ public class FwImporter extends CsvProcessor {
 	private void verifyAccountBalance(Account account) throws MduException {
 		if (account != null) {
 			BigDecimal importedBalance = new BigDecimal(getCol("col.value"));
-			double balance = MdUtil.getCurrentBalance(account);
+			BigDecimal balance = MdUtil.getCurrentBalance(account);
 
-			if (importedBalance.doubleValue() != balance) {
+			if (importedBalance.compareTo(balance) != 0) {
 				// Found a different balance in account %s: have %s, imported %s.
 				// Note: No Moneydance security for ticker symbol [%s] (%s).
 				NumberFormat cf = getCurrencyFormat(importedBalance);
@@ -176,14 +176,13 @@ public class FwImporter extends CsvProcessor {
 				writeFormatted("FWIMP06", security.getName(), security.getTickerSymbol(),
 					account.getAccountName());
 			} else {
-				double balance = MdUtil.getCurrentBalance(secAccount);
+				BigDecimal balance = MdUtil.getCurrentBalance(secAccount);
 
-				if (importedShares.doubleValue() != balance) {
+				if (importedShares.compareTo(balance) != 0) {
 					// Found a different %s (%s) share balance in account %s: have %s, imported %s.
 					NumberFormat nf = getNumberFormat(importedShares);
-					writeFormatted("FWIMP04", secAccount.getAccountName(),
-						security.getTickerSymbol(), account.getAccountName(), nf.format(balance),
-						nf.format(importedShares));
+					writeFormatted("FWIMP04", secAccount.getAccountName(), security.getTickerSymbol(),
+						account.getAccountName(), nf.format(balance), nf.format(importedShares));
 				}
 			}
 		}
