@@ -74,13 +74,13 @@ public class SecurityHandler {
 
 		if (this.newHighPrice > 0 && this.newLowPrice > 0) {
 			newSnapshot.setDailyVolume(this.newVolume);
-			newSnapshot.setUserDailyHigh(1 / this.newHighPrice);
-			newSnapshot.setUserDailyLow(1 / this.newLowPrice);
+			newSnapshot.setDailyHigh(1 / this.newHighPrice);
+			newSnapshot.setDailyLow(1 / this.newLowPrice);
 		}
 		newSnapshot.syncItem();
 
 		if (latestSnapshot == null || this.newDate >= latestSnapshot.getDateInt()) {
-			this.security.setUserRate(1 / this.newPrice);
+			this.security.setRelativeRate(1 / this.newPrice);
 		}
 
 	} // end applyUpdate()

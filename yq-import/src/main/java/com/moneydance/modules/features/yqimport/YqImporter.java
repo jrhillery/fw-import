@@ -89,7 +89,7 @@ public class YqImporter extends CsvProcessor {
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
 		double newPrice = price.doubleValue();
-		double oldPrice = snapshot == null ? 1 : MdUtil.convRateToPrice(snapshot.getUserRate());
+		double oldPrice = snapshot == null ? 1 : MdUtil.convRateToPrice(snapshot.getRate());
 
 		// store this quote if it differs and we don't already have this security
 		if ((snapshot == null || importDate != snapshot.getDateInt() || newPrice != oldPrice)
