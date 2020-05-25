@@ -3,9 +3,6 @@
  */
 package com.moneydance.modules.features.yqimport;
 
-import static com.leastlogic.swing.util.HTMLPane.CL_DECREASE;
-import static com.leastlogic.swing.util.HTMLPane.CL_INCREASE;
-
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -22,6 +19,7 @@ import com.leastlogic.mdimport.util.SecurityHandler;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 import com.leastlogic.moneydance.util.SnapshotList;
+import com.leastlogic.swing.util.HTMLPane;
 
 /**
  * Module used to import Yahoo quote data into Moneydance.
@@ -88,19 +86,18 @@ public class YqImporter extends CsvProcessor {
 		int importDate = parseDate(getCol("col.date"));
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
-		double newPrice = price.doubleValue();
-		double oldPrice = snapshot == null ? 1 : MdUtil.convRateToPrice(snapshot.getRate());
+		BigDecimal oldPrice = snapshot == null ? BigDecimal.ONE
+				: MdUtil.convRateToPrice(snapshot.getRate());
 
 		// store this quote if it differs and we don't already have this security
-		if ((snapshot == null || importDate != snapshot.getDateInt() || newPrice != oldPrice)
-				&& !this.priceChanges.containsKey(security)) {
+		if ((snapshot == null || importDate != snapshot.getDateInt()
+				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = getCurrencyFormat(price);
-			String spanCl = newPrice < oldPrice ? CL_DECREASE
-				: newPrice > oldPrice ? CL_INCREASE : "";
+			double newPrice = price.doubleValue();
 			writeFormatted("YQIMP03", security.getName(), security.getTickerSymbol(),
-				priceFmt.format(oldPrice), priceFmt.format(newPrice), spanCl,
-				(newPrice / oldPrice - 1) * 100);
+				priceFmt.format(oldPrice), priceFmt.format(newPrice),
+				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
 
 			storePriceUpdate(ssList, newPrice, importDate);
 			++this.numPricesSet;

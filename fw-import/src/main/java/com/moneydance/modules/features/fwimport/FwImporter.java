@@ -3,8 +3,6 @@
  */
 package com.moneydance.modules.features.fwimport;
 
-import static com.leastlogic.swing.util.HTMLPane.CL_DECREASE;
-import static com.leastlogic.swing.util.HTMLPane.CL_INCREASE;
 import static java.math.RoundingMode.HALF_EVEN;
 import static java.time.format.FormatStyle.MEDIUM;
 
@@ -25,6 +23,7 @@ import com.leastlogic.mdimport.util.SecurityHandler;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 import com.leastlogic.moneydance.util.SnapshotList;
+import com.leastlogic.swing.util.HTMLPane;
 
 /**
  * Module used to import Fidelity NetBenefits workplace account data into
@@ -122,19 +121,18 @@ public class FwImporter extends CsvProcessor {
 		int importDate = MdUtil.convLocalToDateInt(this.marketDate);
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
-		double newPrice = price.doubleValue();
-		double oldPrice = snapshot == null ? 1 : MdUtil.convRateToPrice(snapshot.getRate());
+		BigDecimal oldPrice = snapshot == null ? BigDecimal.ONE
+				: MdUtil.convRateToPrice(snapshot.getRate());
 
 		// store this quote if it differs and we don't already have this security
-		if ((snapshot == null || importDate != snapshot.getDateInt() || newPrice != oldPrice)
-				&& !this.priceChanges.containsKey(security)) {
+		if ((snapshot == null || importDate != snapshot.getDateInt()
+				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = getCurrencyFormat(price);
-			String spanCl = newPrice < oldPrice ? CL_DECREASE
-				: newPrice > oldPrice ? CL_INCREASE : "";
+			double newPrice = price.doubleValue();
 			writeFormatted("FWIMP03", security.getName(), security.getTickerSymbol(),
-				priceFmt.format(oldPrice), priceFmt.format(newPrice), spanCl,
-				(newPrice / oldPrice - 1) * 100);
+				priceFmt.format(oldPrice), priceFmt.format(newPrice),
+				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
 
 			addHandler(new SecurityHandler(ssList).storeNewPrice(newPrice, importDate));
 			++this.numPricesSet;
