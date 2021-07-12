@@ -62,7 +62,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private static final String DEFAULT_FILE_GLOB_PATTERN = FILE_NAME_PREFIX + '*';
 	private static final DateTimeFormatter textFieldDateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
 	private static final DateTimeFormatter fileNameDateFmt = DateTimeFormatter.ofPattern("MMM-d-yyyy"); //$NON-NLS-1$
-	private static final long serialVersionUID = -8092210194674298755L;
+	private static final long serialVersionUID = -2854101228415634711L;
 
 	/**
 	 * Create the frame.
