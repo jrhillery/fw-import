@@ -8,7 +8,9 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
@@ -29,10 +31,12 @@ public class YqImporter extends CsvProcessor {
 
 	private LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
 	private int numPricesSet = 0;
+	private LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "yq-import.properties";
 	private static final DateTimeFormatter marketDateFmt = DateTimeFormatter.ofPattern("yyyy/M/d");
+	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("E MMM d, y");
 
 	/**
 	 * Sole constructor.
@@ -54,10 +58,13 @@ public class YqImporter extends CsvProcessor {
 		writeFormatted("YQIMP01", this.importWindow.getFileToImport().getFileName());
 
 		processFile();
+		// Found effective date%s %s.
+		writeFormatted("YQIMP09", this.dates.size() == 1 ? "" : "s",
+			this.dates.stream().map(dt -> dt.format(dateFmt)).collect(Collectors.joining("; ")));
 
 		if (!isModified()) {
-			// No new price data found in %s.
-			writeFormatted("YQIMP08", this.importWindow.getFileToImport().getFileName());
+			// No new price data found.
+			writeFormatted("YQIMP08");
 		}
 
 	} // end importFile()
@@ -67,23 +74,26 @@ public class YqImporter extends CsvProcessor {
 	 */
 	protected void processRow() throws MduException {
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
+		LocalDate lDate = parseDate(getCol("col.date"));
 
 		if (security == null) {
 			System.err.format(this.locale, "No Moneydance security for ticker symbol [%s].%n",
 				getCol("col.ticker"));
 		} else {
-			storePriceQuoteIfDiff(security);
+			storePriceQuoteIfDiff(security, lDate);
 		}
+		this.dates.add(lDate);
 
 	} // end processRow()
 
 	/**
 	 * @param security The Moneydance security to use
+	 * @param lDate Effective date for quote
 	 */
-	private void storePriceQuoteIfDiff(CurrencyType security) throws MduException {
+	private void storePriceQuoteIfDiff(CurrencyType security, LocalDate lDate) throws MduException {
 		BigDecimal price = new BigDecimal(getCol("col.price"));
 
-		int importDate = parseDate(getCol("col.date"));
+		int importDate = MdUtil.convLocalToDateInt(lDate);
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
 		BigDecimal oldPrice = snapshot == null ? BigDecimal.ONE
@@ -135,9 +145,9 @@ public class YqImporter extends CsvProcessor {
 
 	/**
 	 * @param marketDate The date string to parse
-	 * @return The numeric date value in decimal form YYYYMMDD
+	 * @return A corresponding local date instance
 	 */
-	private int parseDate(String marketDate) throws MduException {
+	private LocalDate parseDate(String marketDate) throws MduException {
 		LocalDate lDate;
 		try {
 			lDate = LocalDate.parse(marketDate, marketDateFmt);
@@ -146,7 +156,7 @@ public class YqImporter extends CsvProcessor {
 			throw asException(e, "YQIMP17", marketDate, e.toString());
 		}
 
-		return MdUtil.convLocalToDateInt(lDate);
+		return lDate;
 	} // end parseDate(String)
 
 	/**
@@ -179,6 +189,7 @@ public class YqImporter extends CsvProcessor {
 	public void forgetChanges() {
 		this.priceChanges.clear();
 		this.numPricesSet = 0;
+		this.dates.clear();
 
 	} // end forgetChanges()
 

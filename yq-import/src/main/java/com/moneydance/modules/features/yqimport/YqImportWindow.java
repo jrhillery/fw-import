@@ -72,7 +72,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 */
 	private void initComponents() {
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-		setSize(521, 322);
+		setSize(542, 335);
 		JPanel contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
