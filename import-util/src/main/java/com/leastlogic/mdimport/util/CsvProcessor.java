@@ -18,22 +18,23 @@ import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 
 public abstract class CsvProcessor {
-	protected CsvProcessWindow importWindow;
-	protected Locale locale;
-	private String propertiesFileName;
+	protected final CsvProcessWindow importWindow;
+	protected final Locale locale;
+	private final String propertiesFileName;
 
-	private Map<String, String> csvRowMap = new LinkedHashMap<>();
+	private final Map<String, String> csvRowMap = new LinkedHashMap<>();
 	private Properties csvProps = null;
 	private ResourceBundle msgBundle = null;
 
+	@SuppressWarnings("SpellCheckingInspection")
 	private static final String baseMessageBundleName = "com.leastlogic.mdimport.util.MdUtilMessages";
 	private static final char DOUBLE_QUOTE = '"';
 
 	/**
 	 * Sole constructor.
 	 *
-	 * @param importWindow
-	 * @param propertiesFileName
+	 * @param importWindow       Our import console
+	 * @param propertiesFileName Our properties file name
 	 */
 	protected CsvProcessor(CsvProcessWindow importWindow, String propertiesFileName) {
 		this.importWindow = importWindow;
@@ -124,7 +125,7 @@ public abstract class CsvProcessor {
 	} // end openFile()
 
 	/**
-	 * @param reader
+	 * @param reader The buffered reader for the file we are importing
 	 * @return True when the next read will not block for input, false otherwise
 	 */
 	private boolean hasMore(BufferedReader reader) throws MduException {
@@ -138,7 +139,7 @@ public abstract class CsvProcessor {
 	} // end hasMore(BufferedReader)
 
 	/**
-	 * @param reader
+	 * @param reader The buffered reader for the file we are importing
 	 * @return The comma separated tokens from the next line in the file
 	 */
 	private String[] readLine(BufferedReader reader) throws MduException {
@@ -155,7 +156,7 @@ public abstract class CsvProcessor {
 	/**
 	 * Close the specified reader, ignoring any exceptions.
 	 *
-	 * @param reader
+	 * @param reader The buffered reader for the file we are importing
 	 */
 	private static void close(BufferedReader reader) {
 		try {
@@ -214,13 +215,14 @@ public abstract class CsvProcessor {
 	 * @param key The resource bundle key (or message)
 	 * @param params Optional array of parameters for the message
 	 */
-	private void writeFormatted(String key, Object... params) {
+	private void writeFormatted(@SuppressWarnings("SameParameterValue") String key,
+										 Object... params) {
 		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
 
 	} // end writeFormatted(String, Object...)
 
 	/**
-	 * @param amount
+	 * @param amount The reference amount
 	 * @return A currency number format with the number of fraction digits in amount
 	 */
 	protected NumberFormat getCurrencyFormat(BigDecimal amount) {
@@ -236,7 +238,7 @@ public abstract class CsvProcessor {
 	} // end getCurrencyFormat(BigDecimal)
 
 	/**
-	 * @param value
+	 * @param value The reference value
 	 * @return A number format with the number of fraction digits in value
 	 */
 	protected NumberFormat getNumberFormat(BigDecimal value) {

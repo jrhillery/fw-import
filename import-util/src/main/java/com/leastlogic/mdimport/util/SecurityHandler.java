@@ -11,8 +11,8 @@ import com.leastlogic.moneydance.util.SnapshotList;
  * This object handles deferred updates to a Moneydance security.
  */
 public class SecurityHandler {
-	private SnapshotList snapshotList;
-	private CurrencyType security;
+	private final SnapshotList snapshotList;
+	private final CurrencyType security;
 
 	private double newPrice = 0;
 	private int newDate = 0;

@@ -27,11 +27,11 @@ import com.leastlogic.swing.util.HTMLPane;
  * Module used to import Yahoo quote data into Moneydance.
  */
 public class YqImporter extends CsvProcessor {
-	private CurrencyTable securities;
+	private final CurrencyTable securities;
 
-	private LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
+	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
 	private int numPricesSet = 0;
-	private LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
+	private final LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "yq-import.properties";
@@ -41,8 +41,8 @@ public class YqImporter extends CsvProcessor {
 	/**
 	 * Sole constructor.
 	 *
-	 * @param importWindow
-	 * @param accountBook Moneydance account book
+	 * @param importWindow Our import console
+	 * @param accountBook  Moneydance account book
 	 */
 	public YqImporter(YqImportWindow importWindow, AccountBook accountBook) {
 		super(importWindow, propertiesFileName);
@@ -99,7 +99,7 @@ public class YqImporter extends CsvProcessor {
 		BigDecimal oldPrice = snapshot == null ? BigDecimal.ONE
 				: MdUtil.convRateToPrice(snapshot.getRate());
 
-		// store this quote if it differs and we don't already have this security
+		// store this quote if it differs, and we don't already have this security
 		if ((snapshot == null || importDate != snapshot.getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
@@ -162,7 +162,7 @@ public class YqImporter extends CsvProcessor {
 	/**
 	 * Add a security handler to our collection.
 	 *
-	 * @param handler
+	 * @param handler A deferred update security handler to store
 	 */
 	private void addHandler(SecurityHandler handler) {
 		this.priceChanges.put(handler.getSecurity(), handler);
@@ -225,11 +225,13 @@ public class YqImporter extends CsvProcessor {
 	} // end getMsgBundle()
 
 	/**
-	 * @param cause Exception that caused this (null if none)
-	 * @param key The resource bundle key (or message)
+	 * @param cause  Exception that caused this (null if none)
+	 * @param key    The resource bundle key (or message)
 	 * @param params Optional parameters for the detail message
 	 */
-	private MduException asException(Throwable cause, String key, Object... params) {
+	private MduException asException(Throwable cause,
+												@SuppressWarnings("SameParameterValue") String key,
+												Object... params) {
 
 		return new MduException(cause, retrieveMessage(key), params);
 	} // end asException(Throwable, String, Object...)

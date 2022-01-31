@@ -13,12 +13,12 @@ public class Main extends FeatureModule {
 	private YqImporter importer = null;
 
 	/**
-	 * Register this module to be invoked via the extensions menu.
+	 * Register this module to be invoked via the Extensions menu.
 	 *
 	 * @see com.moneydance.apps.md.controller.FeatureModule#init()
 	 */
 	public void init() {
-		getContext().registerFeature(this, "doyqimport", null, getName());
+		getContext().registerFeature(this, "do:yq:import", null, getName());
 
 	} // end init()
 
@@ -40,7 +40,7 @@ public class Main extends FeatureModule {
 	 */
 	void importFile() {
 		try {
-			synchronized (this.importer) {
+			synchronized (this) {
 				this.importWindow.clearText();
 				this.importer.forgetChanges();
 				this.importer.importFile();
@@ -57,7 +57,7 @@ public class Main extends FeatureModule {
 	 */
 	void commitChanges() {
 		try {
-			synchronized (this.importer) {
+			synchronized (this) {
 				this.importer.commitChanges();
 			}
 			this.importWindow.enableCommitButton(this.importer.isModified());

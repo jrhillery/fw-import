@@ -17,12 +17,13 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import com.leastlogic.moneydance.util.MdUtil;
 
 public class CsvChooser {
-	private Component parent;
-	private Locale locale;
-	private Path defaultDirectory;
+	private final Component parent;
+	private final Locale locale;
+	private final Path defaultDirectory;
 
 	private ResourceBundle msgBundle = null;
 
+	@SuppressWarnings("SpellCheckingInspection")
 	private static final String baseMessageBundleName = "com.leastlogic.mdimport.util.MdUtilMessages";
 	private static final String CSV_EXT = "csv";
 
@@ -37,7 +38,7 @@ public class CsvChooser {
 	} // end (Component) constructor
 
 	/**
-	 * @param defaultFileGlobPattern
+	 * @param defaultFileGlobPattern The file name pattern for our default
 	 * @return the selected file, if any
 	 */
 	public Path chooseCsvFile(String defaultFileGlobPattern) {
@@ -62,7 +63,7 @@ public class CsvChooser {
 	} // end chooseCsvFile(String)
 
 	/**
-	 * @param defaultFileGlobPattern
+	 * @param defaultFileGlobPattern The file name pattern for our default
 	 * @return the default file, if a unique one exists matching the supplied glob pattern
 	 */
 	public Path getDefaultFile(String defaultFileGlobPattern) {
