@@ -215,8 +215,7 @@ public abstract class CsvProcessor {
 	 * @param key The resource bundle key (or message)
 	 * @param params Optional array of parameters for the message
 	 */
-	private void writeFormatted(@SuppressWarnings("SameParameterValue") String key,
-										 Object... params) {
+	private void writeFormatted(String key, Object... params) {
 		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
 
 	} // end writeFormatted(String, Object...)

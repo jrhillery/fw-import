@@ -113,7 +113,7 @@ public class YqImporter extends CsvProcessor {
 			++this.numPricesSet;
 		}
 
-	} // end storePriceQuoteIfDiff(CurrencyType)
+	} // end storePriceQuoteIfDiff(CurrencyType, LocalDate)
 
 	/**
 	 * @param snapshotList The list of snapshots to use for the Moneydance security to update
@@ -141,7 +141,7 @@ public class YqImporter extends CsvProcessor {
 		}
 		addHandler(securityHandler);
 
-	} // end storePriceUpdate(CurrencyType, double, int)
+	} // end storePriceUpdate(SnapshotList, double, int)
 
 	/**
 	 * @param marketDate The date string to parse
@@ -229,9 +229,7 @@ public class YqImporter extends CsvProcessor {
 	 * @param key    The resource bundle key (or message)
 	 * @param params Optional parameters for the detail message
 	 */
-	private MduException asException(Throwable cause,
-												@SuppressWarnings("SameParameterValue") String key,
-												Object... params) {
+	private MduException asException(Throwable cause, String key, Object... params) {
 
 		return new MduException(cause, retrieveMessage(key), params);
 	} // end asException(Throwable, String, Object...)
