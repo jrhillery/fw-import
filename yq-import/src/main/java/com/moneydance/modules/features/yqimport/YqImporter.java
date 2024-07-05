@@ -103,7 +103,7 @@ public class YqImporter extends CsvProcessor {
 		if ((snapshot == null || importDate != snapshot.getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
-			NumberFormat priceFmt = getCurrencyFormat(price);
+			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, price);
 			double newPrice = price.doubleValue();
 			writeFormatted("YQIMP03", security.getName(), security.getTickerSymbol(),
 				priceFmt.format(oldPrice), priceFmt.format(newPrice),
@@ -127,7 +127,7 @@ public class YqImporter extends CsvProcessor {
 		String lowPrice = getCol("col.low");
 		String volume = getCol("col.vol");
 
-		if (highPrice.length() > 0 && lowPrice.length() > 0 && volume.length() > 0) {
+		if (!highPrice.isEmpty() && !lowPrice.isEmpty() && !volume.isEmpty()) {
 			try {
 				securityHandler.storeNewPrice(newPrice, importDate, Long.parseLong(volume),
 					Double.parseDouble(highPrice), Double.parseDouble(lowPrice));

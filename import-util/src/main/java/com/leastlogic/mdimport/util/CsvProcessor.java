@@ -222,22 +222,6 @@ public abstract class CsvProcessor {
 	} // end writeFormatted(String, Object...)
 
 	/**
-	 * @param amount The reference amount
-	 * @return A currency number format with the number of fraction digits in amount
-	 */
-	protected NumberFormat getCurrencyFormat(BigDecimal amount) {
-		DecimalFormat formatter = (DecimalFormat) NumberFormat.getCurrencyInstance(this.locale);
-		int amtScale = amount.scale();
-
-		if (amtScale < 2) {
-			amtScale = 2; // some quotes omit the trailing zeros
-		}
-		formatter.setMinimumFractionDigits(amtScale);
-
-		return formatter;
-	} // end getCurrencyFormat(BigDecimal)
-
-	/**
 	 * @param value The reference value
 	 * @return A number format with the number of fraction digits in value
 	 */

@@ -128,7 +128,7 @@ public class FwImporter extends CsvProcessor {
 		if ((snapshot == null || importDate != snapshot.getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
-			NumberFormat priceFmt = getCurrencyFormat(price);
+			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, price);
 			double newPrice = price.doubleValue();
 			writeFormatted("FWIMP03", security.getName(), security.getTickerSymbol(),
 				priceFmt.format(oldPrice), priceFmt.format(newPrice),
@@ -151,7 +151,7 @@ public class FwImporter extends CsvProcessor {
 			if (importedBalance.compareTo(balance) != 0) {
 				// Found a different balance in account %s: have %s, imported %s.
 				// Note: No Moneydance security for ticker symbol [%s] (%s).
-				NumberFormat cf = getCurrencyFormat(importedBalance);
+				NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, importedBalance);
 				writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
 					cf.format(importedBalance), getCol("col.ticker"), getCol("col.name"));
 			}
