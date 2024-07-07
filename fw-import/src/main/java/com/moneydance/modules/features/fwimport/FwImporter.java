@@ -3,8 +3,17 @@
  */
 package com.moneydance.modules.features.fwimport;
 
-import static java.math.RoundingMode.HALF_EVEN;
-import static java.time.format.FormatStyle.MEDIUM;
+import com.infinitekind.moneydance.model.Account;
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.CurrencySnapshot;
+import com.infinitekind.moneydance.model.CurrencyTable;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.leastlogic.mdimport.util.CsvProcessor;
+import com.leastlogic.moneydance.util.MdUtil;
+import com.leastlogic.moneydance.util.MduException;
+import com.leastlogic.moneydance.util.SecurityHandler;
+import com.leastlogic.moneydance.util.SnapshotList;
+import com.leastlogic.swing.util.HTMLPane;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -13,17 +22,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.ResourceBundle;
 
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.AccountBook;
-import com.infinitekind.moneydance.model.CurrencySnapshot;
-import com.infinitekind.moneydance.model.CurrencyTable;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.leastlogic.mdimport.util.CsvProcessor;
-import com.leastlogic.mdimport.util.SecurityHandler;
-import com.leastlogic.moneydance.util.MdUtil;
-import com.leastlogic.moneydance.util.MduException;
-import com.leastlogic.moneydance.util.SnapshotList;
-import com.leastlogic.swing.util.HTMLPane;
+import static java.math.RoundingMode.HALF_EVEN;
+import static java.time.format.FormatStyle.MEDIUM;
 
 /**
  * Module used to import Fidelity NetBenefits workplace account data into
