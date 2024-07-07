@@ -3,6 +3,17 @@
  */
 package com.moneydance.modules.features.yqimport;
 
+import com.infinitekind.moneydance.model.AccountBook;
+import com.infinitekind.moneydance.model.CurrencySnapshot;
+import com.infinitekind.moneydance.model.CurrencyTable;
+import com.infinitekind.moneydance.model.CurrencyType;
+import com.leastlogic.mdimport.util.CsvProcessor;
+import com.leastlogic.moneydance.util.MdUtil;
+import com.leastlogic.moneydance.util.MduException;
+import com.leastlogic.moneydance.util.SecurityHandler;
+import com.leastlogic.moneydance.util.SnapshotList;
+import com.leastlogic.swing.util.HTMLPane;
+
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -11,17 +22,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
-
-import com.infinitekind.moneydance.model.AccountBook;
-import com.infinitekind.moneydance.model.CurrencySnapshot;
-import com.infinitekind.moneydance.model.CurrencyTable;
-import com.infinitekind.moneydance.model.CurrencyType;
-import com.leastlogic.mdimport.util.CsvProcessor;
-import com.leastlogic.mdimport.util.SecurityHandler;
-import com.leastlogic.moneydance.util.MdUtil;
-import com.leastlogic.moneydance.util.MduException;
-import com.leastlogic.moneydance.util.SnapshotList;
-import com.leastlogic.swing.util.HTMLPane;
 
 /**
  * Module used to import Yahoo quote data into Moneydance.
