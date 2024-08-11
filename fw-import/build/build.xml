@@ -6,24 +6,21 @@ http://jakarta.apache.org/ant/index.html
 <project name="fwimport" default="all" basedir=".">
   <property name="src" value=".."/>
   <property name="build" value="."/>
-  <property name="moneydance.devkit" value="C:/Users/John/Documents/Prog/moneydance-devkit-5.1"/>
+  <property name="moneydance.devkit" value="${user.home}/Documents/Prog/moneydance-devkit-5.1"/>
   <property name="importutil" value="${src}/../import-util"/>
   <property name="mdutil" value="${src}/../../mdutil/md-util"/>
   <property name="swingutil" value="${src}/../../mdutil/swing-util"/>
-  <property name="privkeyfile" value="${build}/priv_key"/>
-  <property name="pubkeyfile" value="${build}/pub_key"/>
-  <property name="privkeyid" value="99"/>
 
-  <property name="build.compiler.fulldepend"  value="true"/>
+  <property name="build.compiler.fulldepend" value="true"/>
   <property name="build.sysclasspath" value="ignore" /> <!-- suppress ridiculous "includeantruntime not set" messages from ant -->
   <property name="build.includeantruntime" value="false"/>
-  <property name="dist"  value="${src}/dist"/>
-  <property name="debug"  value="on"/>
-  <property name="optimize"  value="off"/>
+  <property name="dist" value="${src}/dist"/>
+  <property name="debug" value="on"/>
+  <property name="optimize" value="off"/>
 
   <path id="classpath">
-    <pathelement path="${moneydance.devkit}/lib/extadmin.jar"/>
-    <pathelement path="${moneydance.devkit}/lib/moneydance-dev.jar"/>
+    <pathelement location="${moneydance.devkit}/lib/extadmin.jar"/>
+    <pathelement location="${moneydance.devkit}/lib/moneydance-dev.jar"/>
   </path>
 
   <target name="init">
@@ -33,41 +30,19 @@ http://jakarta.apache.org/ant/index.html
   <target name="fwimport" depends="init">
     <javac debug="${debug}" optimize="${optimize}"
       classpathref="classpath" destdir="${build}">
-    	<src path="${src}/src/main/java"/>
-    	<src path="${importutil}/src/main/java"/>
-    	<src path="${swingutil}/src/main/java"/>
-    	<src path="${mdutil}/src/main/java"/>
-  	</javac>
+        <src path="${src}/src/main/java"/>
+        <src path="${importutil}/src/main/java"/>
+        <src path="${mdutil}/src/main/java"/>
+        <src path="${swingutil}/src/main/java"/>
+    </javac>
 
-    <jar destfile="${build}/fwimport.mxt">
+    <jar destfile="${dist}/fwimport.mxt">
       <fileset dir="${importutil}/src/main/resources"/>
       <fileset dir="${src}/src/main/resources"/>
       <fileset dir="${build}" includes="com/**"/>
     </jar>
 
-    <java classname="com.moneydance.admin.KeyAdmin"
-      classpathref="classpath"
-      inputstring="fwimport's passphrase">
-      <arg value="signextjar"/>
-      <arg value="${privkeyfile}"/>
-      <arg value="${privkeyid}"/>
-      <arg value="fwimport"/>
-      <arg line="${build}/fwimport.mxt"/>
-    </java>
-  	<delete file="${build}/fwimport.mxt"/>
-  	<delete dir="${build}/com"/>
-    <move file="s-fwimport.mxt" tofile="${dist}/fwimport.mxt"/>
-  </target>
-
-  <target name="genkeys" depends="init">
-    <java 
-      inputstring="fwimport's passphrase"
-      classpathref="classpath"
-      classname="com.moneydance.admin.KeyAdmin">
-      <arg value="genkey"/>
-      <arg value="${privkeyfile}"/>
-      <arg value="${pubkeyfile}"/>
-    </java>
+    <delete dir="${build}/com"/>
   </target>
 
   <target name="all" depends="fwimport"/>
