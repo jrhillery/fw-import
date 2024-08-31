@@ -89,7 +89,8 @@ public class Main extends FeatureModule {
 	 */
 	private synchronized void showWindow() {
 		if (this.importWindow == null) {
-			this.importWindow = new YqImportWindow(this);
+			this.importWindow = new YqImportWindow(this,
+				getContext().getCurrentAccountBook().getLocalStorage());
 			this.importWindow.setVisible(true);
 		} else {
 			this.importWindow.setVisible(true);

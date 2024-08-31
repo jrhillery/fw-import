@@ -5,6 +5,8 @@ package com.moneydance.modules.features.yqimport;
 
 import com.leastlogic.mdimport.util.CsvChooser;
 import com.leastlogic.mdimport.util.CsvProcessWindow;
+import com.leastlogic.moneydance.util.MdStorageUtil;
+import com.leastlogic.swing.util.AwtScreenUtil;
 import com.leastlogic.swing.util.HTMLPane;
 
 import javax.swing.*;
@@ -21,6 +23,7 @@ import java.beans.PropertyChangeListener;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import static javax.swing.GroupLayout.DEFAULT_SIZE;
@@ -28,12 +31,14 @@ import static javax.swing.GroupLayout.PREFERRED_SIZE;
 
 public class YqImportWindow extends JFrame implements ActionListener, PropertyChangeListener, CsvProcessWindow {
 	private final Main feature;
+	private final MdStorageUtil mdStorage;
 	private final CsvChooser chooser;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
 	private JButton btnImport;
 	private JButton btnCommit;
 	private HTMLPane pnOutputLog;
+	private final AwtScreenUtil screenUtil = new AwtScreenUtil(this);
 
 	@SuppressWarnings("SpellCheckingInspection")
 	static final String baseMessageBundleName = "com.moneydance.modules.features.yqimport.YqImportMessages"; //$NON-NLS-1$
@@ -46,23 +51,25 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Create the frame.
 	 *
 	 * @param feature Our main feature module
+	 * @param storage Moneydance local storage
 	 */
-	public YqImportWindow(Main feature) {
+	public YqImportWindow(Main feature, Map<String, String> storage) {
 		super(msgBundle.getString("YqImportWindow.window.title")); //$NON-NLS-1$
 		this.feature = feature;
+		this.mdStorage = new MdStorageUtil("yq-import", storage);
 		this.chooser = new CsvChooser(getRootPane());
 		initComponents();
 		wireEvents();
 		readIconImage();
 
-	} // end (Main) constructor
+	} // end constructor
 
 	/**
-	 * Initialize the swing components.
+	 * Initialize swing components.
 	 */
 	private void initComponents() {
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-		setSize(600, 371);
+		this.screenUtil.setWindowCoordinates(this.mdStorage, 600, 371);
 		JPanel contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -262,28 +269,11 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @return null
 	 */
 	public YqImportWindow goAway() {
-		Dimension winSize = getSize();
-		System.err.format(getLocale(), "Closing %s with width=%.0f, height=%.0f.%n",
-			getTitle(), winSize.getWidth(), winSize.getHeight());
+		this.screenUtil.persistWindowCoordinates(this.mdStorage);
 		setVisible(false);
 		dispose();
 
 		return null;
 	} // end goAway()
-
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(() -> {
-			try {
-				YqImportWindow frame = new YqImportWindow(null);
-				frame.setVisible(true);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
-
-	} // end main(String[])
 
 } // end class YqImportWindow
