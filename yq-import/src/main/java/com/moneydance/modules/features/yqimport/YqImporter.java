@@ -96,8 +96,7 @@ public class YqImporter extends CsvProcessor {
 		int importDate = MdUtil.convLocalToDateInt(lDate);
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
-		BigDecimal oldPrice = snapshot == null ? BigDecimal.ONE
-				: MdUtil.convRateToPrice(snapshot.getRate());
+		BigDecimal oldPrice = MdUtil.validateCurrentUserRate(security, snapshot);
 
 		// store this quote if it differs, and we don't already have this security
 		if ((snapshot == null || importDate != snapshot.getDateInt()

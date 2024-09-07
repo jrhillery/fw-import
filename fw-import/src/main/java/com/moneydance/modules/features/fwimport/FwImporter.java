@@ -30,11 +30,11 @@ import static java.time.format.FormatStyle.MEDIUM;
  * Moneydance.
  */
 public class FwImporter extends CsvProcessor {
-	private Account root;
-	private CurrencyTable securities;
+	private final Account root;
+	private final CurrencyTable securities;
 
 	private LocalDate marketDate = null;
-	private LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
+	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
 	private int numPricesSet = 0;
 	private ResourceBundle msgBundle = null;
 
@@ -45,7 +45,7 @@ public class FwImporter extends CsvProcessor {
 	/**
 	 * Sole constructor.
 	 *
-	 * @param importWindow
+	 * @param importWindow Our import console
 	 * @param accountBook Moneydance account book
 	 */
 	public FwImporter(FwImportWindow importWindow, AccountBook accountBook) {
@@ -121,8 +121,7 @@ public class FwImporter extends CsvProcessor {
 		int importDate = MdUtil.convLocalToDateInt(this.marketDate);
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
-		BigDecimal oldPrice = snapshot == null ? BigDecimal.ONE
-				: MdUtil.convRateToPrice(snapshot.getRate());
+		BigDecimal oldPrice = MdUtil.validateCurrentUserRate(security, snapshot);
 
 		// store this quote if it differs and we don't already have this security
 		if ((snapshot == null || importDate != snapshot.getDateInt()
@@ -161,8 +160,8 @@ public class FwImporter extends CsvProcessor {
 
 	/**
 	 * @param account Moneydance account
-	 * @param security
-	 * @param importedShares
+	 * @param security The Moneydance security to use
+	 * @param importedShares Shares found during import
 	 */
 	private void verifyShareBalance(Account account, CurrencyType security,
 			BigDecimal importedShares) {
@@ -190,7 +189,7 @@ public class FwImporter extends CsvProcessor {
 	/**
 	 * Add a security handler to our collection.
 	 *
-	 * @param handler
+	 * @param handler A deferred update security handler to store
 	 */
 	private void addHandler(SecurityHandler handler) {
 		this.priceChanges.put(handler.getSecurity(), handler);
