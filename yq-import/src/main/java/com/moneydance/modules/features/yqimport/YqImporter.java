@@ -74,32 +74,32 @@ public class YqImporter extends CsvProcessor {
 	 */
 	protected void processRow() throws MduException {
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
-		LocalDate lDate = parseDate(getCol("col.date"));
+		LocalDate effectiveDate = parseDate(getCol("col.date"));
 
 		if (security == null) {
 			System.err.format(this.locale, "No Moneydance security for ticker symbol [%s].%n",
 				getCol("col.ticker"));
 		} else {
-			storePriceQuoteIfDiff(security, lDate);
+			storePriceQuoteIfDiff(security, effectiveDate);
 		}
-		this.dates.add(lDate);
+		this.dates.add(effectiveDate);
 
 	} // end processRow()
 
 	/**
-	 * @param security The Moneydance security to use
-	 * @param lDate Effective date for quote
+	 * @param security      The Moneydance security to use
+	 * @param effectiveDate Effective date for quote
 	 */
-	private void storePriceQuoteIfDiff(CurrencyType security, LocalDate lDate) throws MduException {
+	private void storePriceQuoteIfDiff(CurrencyType security, LocalDate effectiveDate) throws MduException {
 		BigDecimal price = new BigDecimal(getCol("col.price"));
 
-		int importDate = MdUtil.convLocalToDateInt(lDate);
+		int effDateInt = MdUtil.convLocalToDateInt(effectiveDate);
 		SnapshotList ssList = new SnapshotList(security);
-		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
+		CurrencySnapshot snapshot = ssList.getSnapshotForDate(effDateInt);
 		BigDecimal oldPrice = MdUtil.validateCurrentUserRate(security, snapshot);
 
 		// store this quote if it differs, and we don't already have this security
-		if ((snapshot == null || importDate != snapshot.getDateInt()
+		if ((snapshot == null || effDateInt != snapshot.getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, price);
@@ -108,7 +108,7 @@ public class YqImporter extends CsvProcessor {
 				priceFmt.format(oldPrice), priceFmt.format(newPrice),
 				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
 
-			storePriceUpdate(ssList, newPrice, importDate);
+			storePriceUpdate(ssList, newPrice, effDateInt);
 			++this.numPricesSet;
 		}
 
@@ -147,15 +147,15 @@ public class YqImporter extends CsvProcessor {
 	 * @return A corresponding local date instance
 	 */
 	private LocalDate parseDate(String marketDate) throws MduException {
-		LocalDate lDate;
+		LocalDate mktDate;
 		try {
-			lDate = LocalDate.parse(marketDate, marketDateFmt);
+			mktDate = LocalDate.parse(marketDate, marketDateFmt);
 		} catch (Exception e) {
 			// Exception parsing date from [%s]. %s
 			throw asException(e, "YQIMP17", marketDate, e.toString());
 		}
 
-		return lDate;
+		return mktDate;
 	} // end parseDate(String)
 
 	/**
