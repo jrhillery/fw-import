@@ -30,7 +30,6 @@ public class YqImporter extends CsvProcessor {
 	private final CurrencyTable securities;
 
 	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
-	private int numPricesSet = 0;
 	private final LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
 	private ResourceBundle msgBundle = null;
 
@@ -109,7 +108,6 @@ public class YqImporter extends CsvProcessor {
 				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
 
 			storePriceUpdate(ssList, newPrice, effDateInt);
-			++this.numPricesSet;
 		}
 
 	} // end storePriceQuoteIfDiff(CurrencyType, LocalDate)
@@ -172,11 +170,11 @@ public class YqImporter extends CsvProcessor {
 	 * Commit any changes to Moneydance.
 	 */
 	public void commitChanges() {
-		for (SecurityHandler sHandler : this.priceChanges.values()) {
-			sHandler.applyUpdate();
-		}
+		int numPricesSet = this.priceChanges.size();
+		this.priceChanges.forEach((security, sHandler) -> sHandler.applyUpdate());
+
 		// Changed %d security price%s.
-		writeFormatted("YQIMP07", this.numPricesSet, this.numPricesSet == 1 ? "" : "s");
+		writeFormatted("YQIMP07", numPricesSet, numPricesSet == 1 ? "" : "s");
 
 		forgetChanges();
 
@@ -187,7 +185,6 @@ public class YqImporter extends CsvProcessor {
 	 */
 	public void forgetChanges() {
 		this.priceChanges.clear();
-		this.numPricesSet = 0;
 		this.dates.clear();
 
 	} // end forgetChanges()
