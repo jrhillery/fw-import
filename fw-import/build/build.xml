@@ -11,6 +11,7 @@ http://jakarta.apache.org/ant/index.html
   <property name="importutil" value="${src}/../import-util"/>
   <property name="mdutil" value="${src}/../../mdutil/md-util"/>
   <property name="swingutil" value="${src}/../../mdutil/swing-util"/>
+  <property name="fwdownload" value="${src}/../../fwlookup/fw-download"/>
 
   <property name="build.compiler.fulldepend" value="true"/>
   <property name="build.sysclasspath" value="ignore" /> <!-- suppress ridiculous "includeantruntime not set" messages from ant -->
@@ -41,6 +42,7 @@ http://jakarta.apache.org/ant/index.html
     <jar destfile="${dist}/fwimport.mxt">
       <fileset dir="${importutil}/src/main/resources"/>
       <fileset dir="${src}/src/main/resources"/>
+      <fileset dir="${fwdownload}/resources"/>
       <fileset dir="${build}" includes="com/**"/>
     </jar>
 
