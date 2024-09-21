@@ -3,49 +3,36 @@
  */
 package com.moneydance.modules.features.fwimport;
 
-import static java.time.format.FormatStyle.MEDIUM;
-import static java.time.format.TextStyle.SHORT_STANDALONE;
-import static javax.swing.GroupLayout.DEFAULT_SIZE;
-import static javax.swing.GroupLayout.PREFERRED_SIZE;
+import com.leastlogic.mdimport.util.CsvChooser;
+import com.leastlogic.mdimport.util.CsvProcessWindow;
+import com.leastlogic.swing.util.HTMLPane;
 
-import java.awt.AWTEvent;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.EventQueue;
-import java.awt.Font;
+import javax.swing.*;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.LayoutStyle.ComponentPlacement;
+import javax.swing.border.EmptyBorder;
+import javax.swing.text.DefaultFormatter;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 
-import javax.swing.GroupLayout;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JFormattedTextField;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.LayoutStyle.ComponentPlacement;
-import javax.swing.SwingConstants;
-import javax.swing.WindowConstants;
-import javax.swing.border.EmptyBorder;
-import javax.swing.text.DefaultFormatter;
-
-import com.leastlogic.mdimport.util.CsvChooser;
-import com.leastlogic.mdimport.util.CsvProcessWindow;
-import com.leastlogic.swing.util.HTMLPane;
+import static java.time.format.FormatStyle.MEDIUM;
+import static java.time.format.TextStyle.SHORT_STANDALONE;
+import static javax.swing.GroupLayout.DEFAULT_SIZE;
+import static javax.swing.GroupLayout.PREFERRED_SIZE;
 
 public class FwImportWindow extends JFrame implements ActionListener, PropertyChangeListener, CsvProcessWindow {
-	private Main feature;
-	private CsvChooser chooser;
+	private final Main feature;
+	private final CsvChooser chooser;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
 	private JFormattedTextField txtMarketDate;
@@ -62,12 +49,13 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private static final String DEFAULT_FILE_GLOB_PATTERN = FILE_NAME_PREFIX + '*';
 	private static final DateTimeFormatter textFieldDateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
 	private static final DateTimeFormatter fileNameDateFmt = DateTimeFormatter.ofPattern("MMM-d-yyyy"); //$NON-NLS-1$
+	@Serial
 	private static final long serialVersionUID = -2854101228415634711L;
 
 	/**
 	 * Create the frame.
 	 *
-	 * @param feature
+	 * @param feature Our main feature module
 	 */
 	public FwImportWindow(Main feature) {
 		super(msgBundle.getString("FwImportWindow.window.title")); //$NON-NLS-1$
@@ -184,14 +172,14 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(scrollPane, DEFAULT_SIZE, 235, Short.MAX_VALUE))
 		);
-		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {lblFileToImport, lblMarketDate});
-		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, new Component[] {this.btnChooseFile, this.btnImport, this.btnCommit});
+		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, lblFileToImport, lblMarketDate);
+		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, this.btnChooseFile, this.btnImport, this.btnCommit);
 		contentPane.setLayout(gl_contentPane);
 
 	} // end initComponents()
 
 	/**
-	 * @param button
+	 * @param button The button to adjust
 	 */
 	private void reducePreferredHeight(JComponent button) {
 		Dimension textDim = this.txtFileToImport.getPreferredSize();
@@ -224,7 +212,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	/**
 	 * Invoked when an action occurs.
 	 *
-	 * @param event
+	 * @param event The event to be processed
 	 */
 	public void actionPerformed(ActionEvent event) {
 		Object source = event.getSource();
@@ -284,7 +272,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	/**
 	 * If possible, use the supplied file name to set our market date
 	 *
-	 * @param fileToImport
+	 * @param fileToImport file selected to import
 	 * @return true when date is set
 	 */
 	private boolean useFileNameToSetMarketDate(Path fileToImport) {
@@ -316,7 +304,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end getFileToImport()
 
 	/**
-	 * @param file
+	 * @param file file selected to import
 	 */
 	private void setFileToImport(Path file) {
 		if (file != null) {
@@ -334,7 +322,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end getMarketDate()
 
 	/**
-	 * @param localDate
+	 * @param localDate date prices are effective
 	 */
 	private void setMarketDate(LocalDate localDate) {
 		this.txtMarketDate.setValue(localDate);
@@ -342,7 +330,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end setMarketDate(LocalDate)
 
 	/**
-	 * @param marketDate
+	 * @param marketDate date prices are effective
 	 */
 	private void setDayOfWeek(LocalDate marketDate) {
 		this.lblDayOfWeek.setText(
@@ -367,7 +355,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end clearText()
 
 	/**
-	 * @param fileName
+	 * @param fileName file selected to import
 	 * @return the date encoded in the file name, if any
 	 */
 	private LocalDate parseFileNameAsMarketDate(String fileName) {
@@ -397,7 +385,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	/**
 	 * Processes events on this window.
 	 *
-	 * @param event
+	 * @param event The event to be processed
 	 */
 	protected void processEvent(AWTEvent event) {
 		if (event.getID() == WindowEvent.WINDOW_CLOSING) {
@@ -431,16 +419,14 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Launch the application.
 	 */
 	public static void main(String[] args) {
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					FwImportWindow frame = new FwImportWindow(null);
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
+		EventQueue.invokeLater(() -> {
+            try {
+                FwImportWindow frame = new FwImportWindow(null);
+                frame.setVisible(true);
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+            }
+        });
 
 	} // end main(String[])
 
