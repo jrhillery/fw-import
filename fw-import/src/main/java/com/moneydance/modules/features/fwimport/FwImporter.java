@@ -18,8 +18,11 @@ import com.leastlogic.swing.util.HTMLPane;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 
 import static java.math.RoundingMode.HALF_EVEN;
 
@@ -32,17 +35,18 @@ public class FwImporter extends CsvProcessor {
 	private final CurrencyTable securities;
 
 	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
-	private int numPricesSet = 0;
+	private final LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "fw-import.properties";
 	private static final int PRICE_FRACTION_DIGITS = 6;
+	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("E MMM d, y");
 
 	/**
 	 * Sole constructor.
 	 *
 	 * @param importWindow Our import console
-	 * @param accountBook Moneydance account book
+	 * @param accountBook  Moneydance account book
 	 */
 	public FwImporter(FwImportWindow importWindow, AccountBook accountBook) {
 		super(importWindow, propertiesFileName);
@@ -59,10 +63,13 @@ public class FwImporter extends CsvProcessor {
 		writeFormatted("FWIMP01", this.importWindow.getFileToImport().getFileName());
 
 		processFile();
+		// Found effective date%s %s.
+		writeFormatted("FWIMP09", this.dates.size() == 1 ? "" : "s",
+			this.dates.stream().map(dt -> dt.format(dateFmt)).collect(Collectors.joining("; ")));
 
 		if (!isModified()) {
-			// No new price data found in %s.
-			writeFormatted("FWIMP08", this.importWindow.getFileToImport().getFileName());
+			// No new price data found.
+			writeFormatted("FWIMP08");
 		}
 
 	} // end importFile()
@@ -79,28 +86,31 @@ public class FwImporter extends CsvProcessor {
 			writeFormatted("FWIMP05", getCol("col.account.num"));
 		}
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
+		LocalDate effectiveDate = LocalDate.parse(getCol("col.date"));
 
 		if (security == null) {
 			verifyAccountBalance(account);
 		} else {
 			BigDecimal shares = new BigDecimal(getCol("col.shares"));
 
-			storePriceQuoteIfDiff(security, shares);
+			storePriceQuoteIfDiff(security, shares, effectiveDate);
 
 			verifyShareBalance(account, security, shares);
 		}
+		this.dates.add(effectiveDate);
 
 	} // end processRow()
 
 	/**
-	 * @param security The Moneydance security to use
-	 * @param shares The number of shares included in the value
+	 * @param security      The Moneydance security to use
+	 * @param shares        The number of shares included in the value
+	 * @param effectiveDate Effective date for quote
 	 */
-	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares)
-			throws MduException {
+	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares,
+									   LocalDate effectiveDate) throws MduException {
 		BigDecimal price = new BigDecimal(getCol("col.price"));
 		BigDecimal value = new BigDecimal(getCol("col.value"));
-		int importDate = MdUtil.convLocalToDateInt(LocalDate.parse(getCol("col.date")));
+		int importDate = MdUtil.convLocalToDateInt(effectiveDate);
 
 		// see if shares * price = value to 2 places past the decimal point
 		if (!shares.multiply(price).setScale(value.scale(), HALF_EVEN).equals(value)) {
@@ -122,10 +132,9 @@ public class FwImporter extends CsvProcessor {
 				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
 
 			addHandler(new SecurityHandler(ssList).storeNewPrice(newPrice, importDate));
-			++this.numPricesSet;
 		}
 
-	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal)
+	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal, LocalDate)
 
 	/**
 	 * @param account Moneydance account
@@ -188,11 +197,11 @@ public class FwImporter extends CsvProcessor {
 	 * Commit any changes to Moneydance.
 	 */
 	public void commitChanges() {
-		for (SecurityHandler sHandler : this.priceChanges.values()) {
-			sHandler.applyUpdate();
-		}
+		int numPricesSet = this.priceChanges.size();
+		this.priceChanges.forEach((security, sHandler) -> sHandler.applyUpdate());
+
 		// Changed %d security price%s.
-		writeFormatted("FWIMP07", this.numPricesSet, this.numPricesSet == 1 ? "" : "s");
+		writeFormatted("FWIMP07", numPricesSet, numPricesSet == 1 ? "" : "s");
 
 		forgetChanges();
 
@@ -203,7 +212,7 @@ public class FwImporter extends CsvProcessor {
 	 */
 	public void forgetChanges() {
 		this.priceChanges.clear();
-		this.numPricesSet = 0;
+		this.dates.clear();
 
 	} // end forgetChanges()
 
