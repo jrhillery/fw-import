@@ -18,12 +18,10 @@ import com.leastlogic.swing.util.HTMLPane;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.ResourceBundle;
 
 import static java.math.RoundingMode.HALF_EVEN;
-import static java.time.format.FormatStyle.MEDIUM;
 
 /**
  * Module used to import Fidelity NetBenefits workplace account data into
@@ -33,13 +31,11 @@ public class FwImporter extends CsvProcessor {
 	private final Account root;
 	private final CurrencyTable securities;
 
-	private LocalDate marketDate = null;
 	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
 	private int numPricesSet = 0;
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "fw-import.properties";
-	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
 	private static final int PRICE_FRACTION_DIGITS = 6;
 
 	/**
@@ -59,22 +55,14 @@ public class FwImporter extends CsvProcessor {
 	 * Import the selected comma separated value file.
 	 */
 	public void importFile() throws MduException {
-		this.marketDate = ((FwImportWindow) this.importWindow).getMarketDate();
+		// Importing price data from file %s.
+		writeFormatted("FWIMP01", this.importWindow.getFileToImport().getFileName());
 
-		if (this.marketDate == null) {
-			// Market date must be specified.
-			writeFormatted("FWIMP00");
-		} else {
-			// Importing price data for %s from file %s.
-			writeFormatted("FWIMP01", this.marketDate.format(dateFmt),
-				this.importWindow.getFileToImport().getFileName());
+		processFile();
 
-			processFile();
-
-			if (!isModified()) {
-				// No new price data found in %s.
-				writeFormatted("FWIMP08", this.importWindow.getFileToImport().getFileName());
-			}
+		if (!isModified()) {
+			// No new price data found in %s.
+			writeFormatted("FWIMP08", this.importWindow.getFileToImport().getFileName());
 		}
 
 	} // end importFile()
@@ -112,13 +100,13 @@ public class FwImporter extends CsvProcessor {
 			throws MduException {
 		BigDecimal price = new BigDecimal(getCol("col.price"));
 		BigDecimal value = new BigDecimal(getCol("col.value"));
+		int importDate = MdUtil.convLocalToDateInt(LocalDate.parse(getCol("col.date")));
 
 		// see if shares * price = value to 2 places past the decimal point
 		if (!shares.multiply(price).setScale(value.scale(), HALF_EVEN).equals(value)) {
 			// no, so get the price to the sixth place past the decimal point
 			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
 		}
-		int importDate = MdUtil.convLocalToDateInt(this.marketDate);
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
 		BigDecimal oldPrice = MdUtil.validateCurrentUserRate(security, snapshot);
