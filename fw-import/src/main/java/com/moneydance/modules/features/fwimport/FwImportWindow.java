@@ -5,6 +5,8 @@ package com.moneydance.modules.features.fwimport;
 
 import com.leastlogic.mdimport.util.CsvChooser;
 import com.leastlogic.mdimport.util.CsvProcessWindow;
+import com.leastlogic.moneydance.util.MdStorageUtil;
+import com.leastlogic.swing.util.AwtScreenUtil;
 import com.leastlogic.swing.util.HTMLPane;
 
 import javax.swing.*;
@@ -21,6 +23,7 @@ import java.beans.PropertyChangeListener;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 import static javax.swing.GroupLayout.DEFAULT_SIZE;
@@ -28,12 +31,14 @@ import static javax.swing.GroupLayout.PREFERRED_SIZE;
 
 public class FwImportWindow extends JFrame implements ActionListener, PropertyChangeListener, CsvProcessWindow {
 	private final Main feature;
+	private final MdStorageUtil mdStorage;
 	private final CsvChooser chooser;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
 	private JButton btnImport;
 	private JButton btnCommit;
 	private HTMLPane pnOutputLog;
+	private final AwtScreenUtil screenUtil = new AwtScreenUtil(this);
 
 	static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages"; //$NON-NLS-1$
 	private static final ResourceBundle msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
@@ -45,10 +50,12 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Create the frame.
 	 *
 	 * @param feature Our main feature module
+	 * @param storage Moneydance local storage
 	 */
-	public FwImportWindow(Main feature) {
+	public FwImportWindow(Main feature, Map<String, String> storage) {
 		super(msgBundle.getString("FwImportWindow.window.title")); //$NON-NLS-1$
 		this.feature = feature;
+		this.mdStorage = new MdStorageUtil("fw-import", storage);
 		this.chooser = new CsvChooser(getRootPane());
 		initComponents();
 		wireEvents();
@@ -61,7 +68,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 */
 	private void initComponents() {
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-		setSize(577, 357);
+		this.screenUtil.setWindowCoordinates(this.mdStorage, 577, 357);
 		JPanel contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -261,28 +268,11 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @return null
 	 */
 	public FwImportWindow goAway() {
-		Dimension winSize = getSize();
-		System.err.format(getLocale(), "Closing %s with width=%.0f, height=%.0f.%n",
-			getTitle(), winSize.getWidth(), winSize.getHeight());
+		this.screenUtil.persistWindowCoordinates(this.mdStorage);
 		setVisible(false);
 		dispose();
 
 		return null;
 	} // end goAway()
-
-	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		EventQueue.invokeLater(() -> {
-            try {
-                FwImportWindow frame = new FwImportWindow(null);
-                frame.setVisible(true);
-            } catch (Exception e) {
-                e.printStackTrace(System.err);
-            }
-        });
-
-	} // end main(String[])
 
 } // end class FwImportWindow

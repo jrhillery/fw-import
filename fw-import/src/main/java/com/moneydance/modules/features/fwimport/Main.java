@@ -13,7 +13,7 @@ public class Main extends FeatureModule {
 	private FwImporter importer = null;
 
 	/**
-	 * Register this module to be invoked via the extensions menu.
+	 * Register this module to be invoked via the Extensions menu.
 	 *
 	 * @see com.moneydance.apps.md.controller.FeatureModule#init()
 	 */
@@ -89,7 +89,8 @@ public class Main extends FeatureModule {
 	 */
 	private synchronized void showWindow() {
 		if (this.importWindow == null) {
-			this.importWindow = new FwImportWindow(this);
+			this.importWindow = new FwImportWindow(this,
+				getContext().getCurrentAccountBook().getLocalStorage());
 			this.importWindow.setVisible(true);
 		} else {
 			this.importWindow.setVisible(true);
