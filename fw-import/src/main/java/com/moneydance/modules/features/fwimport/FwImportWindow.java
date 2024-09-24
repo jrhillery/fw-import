@@ -21,12 +21,8 @@ import java.beans.PropertyChangeListener;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 
-import static java.time.format.FormatStyle.MEDIUM;
-import static java.time.format.TextStyle.SHORT_STANDALONE;
 import static javax.swing.GroupLayout.DEFAULT_SIZE;
 import static javax.swing.GroupLayout.PREFERRED_SIZE;
 
@@ -35,20 +31,13 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private final CsvChooser chooser;
 	private JFormattedTextField txtFileToImport;
 	private JButton btnChooseFile;
-	private JFormattedTextField txtMarketDate;
-	private JLabel lblDayOfWeek;
-	private JButton btnPriorDay;
-	private JButton btnNextDay;
 	private JButton btnImport;
 	private JButton btnCommit;
 	private HTMLPane pnOutputLog;
 
 	static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages"; //$NON-NLS-1$
 	private static final ResourceBundle msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
-	private static final String FILE_NAME_PREFIX = "Portfolio_Position_"; //$NON-NLS-1$
-	private static final String DEFAULT_FILE_GLOB_PATTERN = FILE_NAME_PREFIX + '*';
-	private static final DateTimeFormatter textFieldDateFmt = DateTimeFormatter.ofLocalizedDate(MEDIUM);
-	private static final DateTimeFormatter fileNameDateFmt = DateTimeFormatter.ofPattern("MMM-d-yyyy"); //$NON-NLS-1$
+	private static final String DEFAULT_FILE_GLOB_PATTERN = "NbPosition*";
 	@Serial
 	private static final long serialVersionUID = -2854101228415634711L;
 
@@ -65,10 +54,10 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		wireEvents();
 		readIconImage();
 
-	} // end (Main) constructor
+	} // end constructor
 
 	/**
-	 * Initialize the swing components.
+	 * Initialize swing components.
 	 */
 	private void initComponents() {
 		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -95,27 +84,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		reducePreferredHeight(this.btnChooseFile);
 		this.btnChooseFile.setToolTipText(msgBundle.getString("FwImportWindow.btnChooseFile.toolTipText")); //$NON-NLS-1$
 
-		JLabel lblMarketDate = new JLabel(msgBundle.getString("FwImportWindow.lblMarketDate.text")); //$NON-NLS-1$
-
-		this.txtMarketDate = new JFormattedTextField(textFieldDateFmt.toFormat());
-		this.txtMarketDate.setToolTipText(msgBundle.getString("FwImportWindow.txtMarketDate.toolTipText")); //$NON-NLS-1$
-
-		if (!useFileNameToSetMarketDate(defaultFile))
-			setMarketDate(LocalDate.now());
-
-		this.lblDayOfWeek = new JLabel();
-		this.lblDayOfWeek.setFont(this.lblDayOfWeek.getFont()
-			.deriveFont(this.lblDayOfWeek.getFont().getStyle() & ~Font.BOLD));
-		setDayOfWeek(getMarketDate());
-
-		this.btnPriorDay = new JButton("<"); //$NON-NLS-1$
-		reducePreferredHeight(this.btnPriorDay);
-		this.btnPriorDay.setToolTipText(msgBundle.getString("FwImportWindow.btnPriorDay.toolTipText")); //$NON-NLS-1$
-
-		this.btnNextDay = new JButton(">"); //$NON-NLS-1$
-		reducePreferredHeight(this.btnNextDay);
-		this.btnNextDay.setToolTipText(msgBundle.getString("FwImportWindow.btnNextDay.toolTipText")); //$NON-NLS-1$
-
 		this.btnImport = new JButton(msgBundle.getString("FwImportWindow.btnImport.text")); //$NON-NLS-1$
 		this.btnImport.setEnabled(defaultFile != null);
 		reducePreferredHeight(this.btnImport);
@@ -138,16 +106,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(this.btnChooseFile))
 				.addGroup(gl_contentPane.createSequentialGroup()
-					.addComponent(lblMarketDate)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.txtMarketDate, PREFERRED_SIZE, 86, PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.lblDayOfWeek, PREFERRED_SIZE, 34, PREFERRED_SIZE)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.btnPriorDay)
-					.addPreferredGap(ComponentPlacement.RELATED)
-					.addComponent(this.btnNextDay)
-					.addPreferredGap(ComponentPlacement.RELATED, 94, Short.MAX_VALUE)
+					.addContainerGap()
 					.addComponent(this.btnImport)
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(this.btnCommit))
@@ -162,17 +121,11 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 						.addComponent(this.btnChooseFile))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_contentPane.createParallelGroup(Alignment.BASELINE)
-						.addComponent(lblMarketDate)
-						.addComponent(this.txtMarketDate, PREFERRED_SIZE, DEFAULT_SIZE, PREFERRED_SIZE)
-						.addComponent(this.lblDayOfWeek)
-						.addComponent(this.btnPriorDay)
-						.addComponent(this.btnNextDay)
 						.addComponent(this.btnImport)
 						.addComponent(this.btnCommit))
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addComponent(scrollPane, DEFAULT_SIZE, 235, Short.MAX_VALUE))
 		);
-		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, lblFileToImport, lblMarketDate);
 		gl_contentPane.linkSize(SwingConstants.HORIZONTAL, this.btnChooseFile, this.btnImport, this.btnCommit);
 		contentPane.setLayout(gl_contentPane);
 
@@ -193,9 +146,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private void wireEvents() {
 		this.txtFileToImport.addPropertyChangeListener("value", this); //$NON-NLS-1$
 		this.btnChooseFile.addActionListener(this);
-		this.txtMarketDate.addPropertyChangeListener("value", this); //$NON-NLS-1$
-		this.btnPriorDay.addActionListener(this);
-		this.btnNextDay.addActionListener(this);
 		this.btnImport.addActionListener(this);
 		this.btnCommit.addActionListener(this);
 
@@ -221,22 +171,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 			setFileToImport(this.chooser.chooseCsvFile(DEFAULT_FILE_GLOB_PATTERN));
 		}
 
-		if (source == this.btnPriorDay) {
-			LocalDate curDate = getMarketDate();
-
-			if (curDate != null) {
-				setMarketDate(curDate.minusDays(1));
-			}
-		}
-
-		if (source == this.btnNextDay) {
-			LocalDate curDate = getMarketDate();
-
-			if (curDate != null) {
-				setMarketDate(curDate.plusDays(1));
-			}
-		}
-
 		if (source == this.btnImport && this.feature != null) {
 			this.feature.importFile();
 		}
@@ -255,44 +189,10 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		Object source = evt.getSource();
 
 		if (source == this.txtFileToImport) {
-			useFileNameToSetMarketDate(getFileToImport());
 			this.btnImport.setEnabled(true);
 		}
 
-		if (source == this.txtMarketDate) {
-			LocalDate marketDate = getMarketDate();
-
-			if (marketDate != null) {
-				setDayOfWeek(marketDate);
-			}
-		}
-
 	} // end propertyChange(PropertyChangeEvent)
-
-	/**
-	 * If possible, use the supplied file name to set our market date
-	 *
-	 * @param fileToImport file selected to import
-	 * @return true when date is set
-	 */
-	private boolean useFileNameToSetMarketDate(Path fileToImport) {
-		boolean dateSet = false;
-
-		if (fileToImport != null) {
-			Path fileNmPath = fileToImport.getFileName();
-
-			if (fileNmPath != null) {
-				LocalDate localDate = parseFileNameAsMarketDate(fileNmPath.toString());
-
-				if (localDate != null) {
-					setMarketDate(localDate.minusDays(1));
-					dateSet = true;
-				}
-			}
-		}
-
-		return dateSet;
-	} // end useFileNameToSetMarketDate(Path)
 
 	/**
 	 * @return the file selected to import
@@ -304,7 +204,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end getFileToImport()
 
 	/**
-	 * @param file file selected to import
+	 * @param file The location of the file selected to import
 	 */
 	private void setFileToImport(Path file) {
 		if (file != null) {
@@ -314,32 +214,7 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end setFileToImport(Path)
 
 	/**
-	 * @return the selected market date
-	 */
-	public LocalDate getMarketDate() {
-
-		return (LocalDate) this.txtMarketDate.getValue();
-	} // end getMarketDate()
-
-	/**
-	 * @param localDate date prices are effective
-	 */
-	private void setMarketDate(LocalDate localDate) {
-		this.txtMarketDate.setValue(localDate);
-
-	} // end setMarketDate(LocalDate)
-
-	/**
-	 * @param marketDate date prices are effective
-	 */
-	private void setDayOfWeek(LocalDate marketDate) {
-		this.lblDayOfWeek.setText(
-			'(' + marketDate.getDayOfWeek().getDisplayName(SHORT_STANDALONE, getLocale()) + ')');
-
-	} // end setDayOfWeek(LocalDate)
-
-	/**
-	 * @param text HTML text to append to the output log text area
+	 * @param text HTML-text to append to the output log text area
 	 */
 	public void addText(String text) {
 		this.pnOutputLog.addText(text);
@@ -353,26 +228,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.pnOutputLog.clearText();
 
 	} // end clearText()
-
-	/**
-	 * @param fileName file selected to import
-	 * @return the date encoded in the file name, if any
-	 */
-	private LocalDate parseFileNameAsMarketDate(String fileName) {
-		LocalDate localDate = null;
-		int dotPos = fileName.indexOf('.');
-
-		if (fileName.startsWith(FILE_NAME_PREFIX) && dotPos > 0) {
-			String dateStr = fileName.substring(FILE_NAME_PREFIX.length(), dotPos);
-			try {
-				localDate = fileNameDateFmt.parse(dateStr, LocalDate::from);
-			} catch (Exception e) {
-				// ignore parsing problems
-			}
-		}
-
-		return localDate;
-	} // end parseFileNameAsMarketDate(String)
 
 	/**
 	 * @param b true to enable the button, otherwise false
