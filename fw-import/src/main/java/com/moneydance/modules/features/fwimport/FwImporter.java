@@ -110,7 +110,7 @@ public class FwImporter extends CsvProcessor {
 									   LocalDate effectiveDate) throws MduException {
 		BigDecimal price = new BigDecimal(getCol("col.price"));
 		BigDecimal value = new BigDecimal(getCol("col.value"));
-		int importDate = MdUtil.convLocalToDateInt(effectiveDate);
+		int effDateInt = MdUtil.convLocalToDateInt(effectiveDate);
 
 		// see if shares * price = value to 2 places past the decimal point
 		if (!shares.multiply(price).setScale(value.scale(), HALF_EVEN).equals(value)) {
@@ -118,11 +118,11 @@ public class FwImporter extends CsvProcessor {
 			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
 		}
 		SnapshotList ssList = new SnapshotList(security);
-		CurrencySnapshot snapshot = ssList.getSnapshotForDate(importDate);
+		CurrencySnapshot snapshot = ssList.getSnapshotForDate(effDateInt);
 		BigDecimal oldPrice = MdUtil.validateCurrentUserRate(security, snapshot);
 
 		// store this quote if it differs and we don't already have this security
-		if ((snapshot == null || importDate != snapshot.getDateInt()
+		if ((snapshot == null || effDateInt != snapshot.getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, price);
@@ -131,7 +131,7 @@ public class FwImporter extends CsvProcessor {
 				priceFmt.format(oldPrice), priceFmt.format(newPrice),
 				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
 
-			addHandler(new SecurityHandler(ssList).storeNewPrice(newPrice, importDate));
+			addHandler(new SecurityHandler(ssList).storeNewPrice(newPrice, effDateInt));
 		}
 
 	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal, LocalDate)
