@@ -40,7 +40,6 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	private HTMLPane pnOutputLog;
 	private final AwtScreenUtil screenUtil = new AwtScreenUtil(this);
 
-	@SuppressWarnings("SpellCheckingInspection")
 	static final String baseMessageBundleName = "com.moneydance.modules.features.yqimport.YqImportMessages"; //$NON-NLS-1$
 	private static final ResourceBundle msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
 	private static final String DEFAULT_FILE_GLOB_PATTERN = "quotes*"; //$NON-NLS-1$

@@ -23,7 +23,6 @@ public class CsvChooser {
 
 	private ResourceBundle msgBundle = null;
 
-	@SuppressWarnings("SpellCheckingInspection")
 	private static final String baseMessageBundleName = "com.leastlogic.mdimport.util.MdUtilMessages";
 	private static final String CSV_EXT = "csv";
 

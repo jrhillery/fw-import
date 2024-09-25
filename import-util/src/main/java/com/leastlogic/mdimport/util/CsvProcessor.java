@@ -26,7 +26,6 @@ public abstract class CsvProcessor {
 	private Properties csvProps = null;
 	private ResourceBundle msgBundle = null;
 
-	@SuppressWarnings("SpellCheckingInspection")
 	private static final String baseMessageBundleName = "com.leastlogic.mdimport.util.MdUtilMessages";
 	private static final char DOUBLE_QUOTE = '"';
 
