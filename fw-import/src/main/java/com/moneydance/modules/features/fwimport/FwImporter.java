@@ -119,7 +119,7 @@ public class FwImporter extends CsvProcessor {
 		}
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(effDateInt);
-		BigDecimal oldPrice = MdUtil.validateCurrentUserRate(security, snapshot);
+		BigDecimal oldPrice = getSnapshotPrice(security, snapshot);
 
 		// store this quote if it differs and we don't already have this security
 		if ((snapshot == null || effDateInt != snapshot.getDateInt()

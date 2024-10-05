@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
+import com.infinitekind.moneydance.model.CurrencySnapshot;
+import com.infinitekind.moneydance.model.CurrencyType;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 
@@ -174,6 +176,25 @@ public abstract class CsvProcessor {
 
 		return this.csvProps;
 	} // end getCsvProps()
+
+	/**
+	 * Retrieve the price for this snapshot and validate the current price.
+	 *
+	 * @param security The Moneydance security
+	 * @param snapshot The currency snapshot to use
+	 * @return The price as a BigDecimal
+	 */
+	protected static BigDecimal getSnapshotPrice(CurrencyType security,
+												 CurrencySnapshot snapshot) {
+
+		if (snapshot == null)
+			return BigDecimal.ONE; // default price to 1 when no snapshot
+
+		BigDecimal price = MdUtil.convRateToPrice(snapshot.getRate());
+		MdUtil.validateCurrentUserRate(security, price, snapshot);
+
+		return price;
+	} // end getSnapshotPrice(CurrencyType, CurrencySnapshot)
 
 	/**
 	 * @return Our message bundle
