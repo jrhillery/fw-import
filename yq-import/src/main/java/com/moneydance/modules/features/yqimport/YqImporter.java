@@ -101,7 +101,7 @@ public class YqImporter extends CsvProcessor {
 		if ((snapshot == null || effDateInt != snapshot.getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
-			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, price);
+			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, oldPrice, price);
 			double newPrice = price.doubleValue();
 			writeFormatted("YQIMP03", security.getName(), security.getTickerSymbol(),
 				priceFmt.format(oldPrice), priceFmt.format(newPrice),
