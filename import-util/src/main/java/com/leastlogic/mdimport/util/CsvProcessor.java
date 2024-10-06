@@ -184,14 +184,14 @@ public abstract class CsvProcessor {
 	 * @param snapshot The currency snapshot to use
 	 * @return The price as a BigDecimal
 	 */
-	protected static BigDecimal getSnapshotPrice(CurrencyType security,
-												 CurrencySnapshot snapshot) {
+	protected BigDecimal getSnapshotPrice(CurrencyType security, CurrencySnapshot snapshot) {
 
 		if (snapshot == null)
 			return BigDecimal.ONE; // default price to 1 when no snapshot
 
 		BigDecimal price = MdUtil.convRateToPrice(snapshot.getRate());
-		MdUtil.validateCurrentUserRate(security, price, snapshot);
+		MdUtil.validateCurrentUserRate(security, price, snapshot)
+				.ifPresent(correction -> writeFormatted("MDUTL00", correction));
 
 		return price;
 	} // end getSnapshotPrice(CurrencyType, CurrencySnapshot)
