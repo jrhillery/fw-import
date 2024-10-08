@@ -189,8 +189,9 @@ public abstract class CsvProcessor {
 		if (snapshot == null)
 			return BigDecimal.ONE; // default price to 1 when no snapshot
 
-		BigDecimal price = MdUtil.convRateToPrice(snapshot.getRate());
-		MdUtil.validateCurrentUserRate(security, price, snapshot, this.locale)
+		double rate = snapshot.getRate();
+		BigDecimal price = MdUtil.convRateToPrice(rate);
+		MdUtil.validateCurrentUserRate(security, price, rate, this.locale)
 				.ifPresent(correction -> writeFormatted("MDUTL00", correction));
 
 		return price;
