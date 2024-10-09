@@ -163,22 +163,21 @@ public class FwImporter extends CsvProcessor {
 	private void verifyShareBalance(Account account, CurrencyType security,
 			BigDecimal importedShares) {
 		if (account != null) {
-			Account secAccount = MdUtil.getSubAccountByName(account, security.getName());
-
-			if (secAccount == null) {
-				// Unable to obtain Moneydance security [%s (%s)] in account %s.
-				writeFormatted("FWIMP06", security.getName(), security.getTickerSymbol(),
-					account.getAccountName());
-			} else {
+			MdUtil.getSubAccountByName(account, security.getName()).ifPresentOrElse(secAccount -> {
 				BigDecimal balance = MdUtil.getCurrentBalance(secAccount);
 
 				if (importedShares.compareTo(balance) != 0) {
 					// Found a different %s (%s) share balance in account %s: have %s, imported %s.
-					NumberFormat nf = getNumberFormat(importedShares);
-					writeFormatted("FWIMP04", secAccount.getAccountName(), security.getTickerSymbol(),
-						account.getAccountName(), nf.format(balance), nf.format(importedShares));
+					NumberFormat nf = getNumberFormat(balance, importedShares);
+					writeFormatted("FWIMP04", secAccount.getAccountName(),
+							security.getTickerSymbol(), account.getAccountName(),
+							nf.format(balance), nf.format(importedShares));
 				}
-			}
+			}, () -> {
+				// Unable to obtain Moneydance security [%s (%s)] in account %s.
+				writeFormatted("FWIMP06", security.getName(), security.getTickerSymbol(),
+					account.getAccountName());
+			});
 		}
 
 	} // end verifyShareBalance(Account, CurrencyType, BigDecimal)

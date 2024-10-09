@@ -242,14 +242,17 @@ public abstract class CsvProcessor {
 	} // end writeFormatted(String, Object...)
 
 	/**
-	 * @param value The reference value
-	 * @return A number format with the number of fraction digits in value
+	 * @param value1 First reference value
+	 * @param value2 Second reference value
+	 * @return A number format with the number of fraction digits in either value
 	 */
-	protected NumberFormat getNumberFormat(BigDecimal value) {
+	protected NumberFormat getNumberFormat(BigDecimal value1, BigDecimal value2) {
 		DecimalFormat formatter = (DecimalFormat) NumberFormat.getNumberInstance(this.locale);
-		formatter.setMinimumFractionDigits(value.scale());
+		formatter.setMinimumFractionDigits(Math.max(
+				value1.stripTrailingZeros().scale(),
+				value2.stripTrailingZeros().scale()));
 
 		return formatter;
-	} // end getNumberFormat(BigDecimal)
+	} // end getNumberFormat(BigDecimal, BigDecimal)
 
 } // end class CsvProcessor
