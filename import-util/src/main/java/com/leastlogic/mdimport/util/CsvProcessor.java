@@ -6,8 +6,6 @@ package com.leastlogic.mdimport.util;
 import java.io.BufferedReader;
 import java.math.BigDecimal;
 import java.nio.file.Files;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -240,19 +238,5 @@ public abstract class CsvProcessor {
 		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
 
 	} // end writeFormatted(String, Object...)
-
-	/**
-	 * @param value1 First reference value
-	 * @param value2 Second reference value
-	 * @return A number format with the number of fraction digits in either value
-	 */
-	protected NumberFormat getNumberFormat(BigDecimal value1, BigDecimal value2) {
-		DecimalFormat formatter = (DecimalFormat) NumberFormat.getNumberInstance(this.locale);
-		formatter.setMinimumFractionDigits(Math.max(
-				value1.stripTrailingZeros().scale(),
-				value2.stripTrailingZeros().scale()));
-
-		return formatter;
-	} // end getNumberFormat(BigDecimal, BigDecimal)
 
 } // end class CsvProcessor

@@ -168,7 +168,7 @@ public class FwImporter extends CsvProcessor {
 
 				if (importedShares.compareTo(balance) != 0) {
 					// Found a different %s (%s) share balance in account %s: have %s, imported %s.
-					NumberFormat nf = getNumberFormat(balance, importedShares);
+					NumberFormat nf = MdUtil.getNumberFormat(this.locale, balance, importedShares);
 					writeFormatted("FWIMP04", secAccount.getAccountName(),
 							security.getTickerSymbol(), account.getAccountName(),
 							nf.format(balance), nf.format(importedShares));
