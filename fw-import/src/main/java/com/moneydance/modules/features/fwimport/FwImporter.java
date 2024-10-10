@@ -86,13 +86,15 @@ public class FwImporter extends CsvProcessor {
 			// Unable to obtain Moneydance investment account with number [%s].
 			writeFormatted("FWIMP05", getCol("col.account.num"));
 		}
-		CurrencyType security = this.securities.getCurrencyByTickerSymbol(getCol("col.ticker"));
+		BigDecimal balance = new BigDecimal(getCol("col.value"));
+		String secTicker = getCol("col.ticker");
+		String secName = getCol("col.name");
+		CurrencyType security = this.securities.getCurrencyByTickerSymbol(secTicker);
 		LocalDate effectiveDate = LocalDate.parse(getCol("col.date"));
 
 		if (security == null) {
-			if (account.isPresent()) {
-				verifyAccountBalance(account.get());
-			}
+            account.ifPresent(subAcct ->
+				verifyAccountBalance(subAcct, balance, secTicker, secName));
 		} else {
 			BigDecimal shares = new BigDecimal(getCol("col.shares"));
 
@@ -140,10 +142,13 @@ public class FwImporter extends CsvProcessor {
 	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal, LocalDate)
 
 	/**
-	 * @param account Moneydance account
+	 * @param account         Moneydance account
+	 * @param importedBalance Balance found during import
+	 * @param secTicker       Security ticker symbol found during import
+	 * @param secName         Security name found during import
 	 */
-	private void verifyAccountBalance(Account account) throws MduException {
-		BigDecimal importedBalance = new BigDecimal(getCol("col.value"));
+	private void verifyAccountBalance(Account account, BigDecimal importedBalance,
+									  String secTicker, String secName) {
 		BigDecimal balance = MdUtil.getCurrentBalance(account);
 
 		if (importedBalance.compareTo(balance) != 0) {
@@ -151,10 +156,10 @@ public class FwImporter extends CsvProcessor {
 			// Note: No Moneydance security for ticker symbol [%s] (%s).
 			NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, balance, importedBalance);
 			writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
-				cf.format(importedBalance), getCol("col.ticker"), getCol("col.name"));
+				cf.format(importedBalance), secTicker, secName);
 		}
 
-	} // end verifyAccountBalance(Account)
+	} // end verifyAccountBalance(Account, BigDecimal, String, String)
 
 	/**
 	 * @param account Moneydance account
@@ -162,7 +167,7 @@ public class FwImporter extends CsvProcessor {
 	 * @param importedShares Shares found during import
 	 */
 	private void verifyShareBalance(Account account, CurrencyType security,
-			BigDecimal importedShares) {
+									BigDecimal importedShares) {
 		MdUtil.getSubAccountByName(account, security.getName()).ifPresentOrElse(secAccount -> {
 			BigDecimal balance = MdUtil.getCurrentBalance(secAccount);
 
