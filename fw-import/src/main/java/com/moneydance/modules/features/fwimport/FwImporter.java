@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
@@ -78,10 +79,10 @@ public class FwImporter extends CsvProcessor {
 	 * Import this row of the comma separated value file.
 	 */
 	protected void processRow() throws MduException {
-		Account account = MdUtil.getSubAccountByInvestNumber(this.root,
+		Optional<Account> account = MdUtil.getSubAccountByInvestNumber(this.root,
 			getCol("col.account.num"));
 
-		if (account == null) {
+		if (account.isEmpty()) {
 			// Unable to obtain Moneydance investment account with number [%s].
 			writeFormatted("FWIMP05", getCol("col.account.num"));
 		}
@@ -89,13 +90,15 @@ public class FwImporter extends CsvProcessor {
 		LocalDate effectiveDate = LocalDate.parse(getCol("col.date"));
 
 		if (security == null) {
-			verifyAccountBalance(account);
+			if (account.isPresent()) {
+				verifyAccountBalance(account.get());
+			}
 		} else {
 			BigDecimal shares = new BigDecimal(getCol("col.shares"));
 
 			storePriceQuoteIfDiff(security, shares, effectiveDate);
 
-			verifyShareBalance(account, security, shares);
+			account.ifPresent(subAcct -> verifyShareBalance(subAcct, security, shares));
 		}
 		this.dates.add(effectiveDate);
 
@@ -140,17 +143,15 @@ public class FwImporter extends CsvProcessor {
 	 * @param account Moneydance account
 	 */
 	private void verifyAccountBalance(Account account) throws MduException {
-		if (account != null) {
-			BigDecimal importedBalance = new BigDecimal(getCol("col.value"));
-			BigDecimal balance = MdUtil.getCurrentBalance(account);
+		BigDecimal importedBalance = new BigDecimal(getCol("col.value"));
+		BigDecimal balance = MdUtil.getCurrentBalance(account);
 
-			if (importedBalance.compareTo(balance) != 0) {
-				// Found a different balance in account %s: have %s, imported %s.
-				// Note: No Moneydance security for ticker symbol [%s] (%s).
-				NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, balance, importedBalance);
-				writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
-					cf.format(importedBalance), getCol("col.ticker"), getCol("col.name"));
-			}
+		if (importedBalance.compareTo(balance) != 0) {
+			// Found a different balance in account %s: have %s, imported %s.
+			// Note: No Moneydance security for ticker symbol [%s] (%s).
+			NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, balance, importedBalance);
+			writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
+				cf.format(importedBalance), getCol("col.ticker"), getCol("col.name"));
 		}
 
 	} // end verifyAccountBalance(Account)
@@ -162,23 +163,20 @@ public class FwImporter extends CsvProcessor {
 	 */
 	private void verifyShareBalance(Account account, CurrencyType security,
 			BigDecimal importedShares) {
-		if (account != null) {
-			MdUtil.getSubAccountByName(account, security.getName()).ifPresentOrElse(secAccount -> {
-				BigDecimal balance = MdUtil.getCurrentBalance(secAccount);
+		MdUtil.getSubAccountByName(account, security.getName()).ifPresentOrElse(secAccount -> {
+			BigDecimal balance = MdUtil.getCurrentBalance(secAccount);
 
-				if (importedShares.compareTo(balance) != 0) {
-					// Found a different %s (%s) share balance in account %s: have %s, imported %s.
-					NumberFormat nf = MdUtil.getNumberFormat(this.locale, balance, importedShares);
-					writeFormatted("FWIMP04", secAccount.getAccountName(),
-							security.getTickerSymbol(), account.getAccountName(),
-							nf.format(balance), nf.format(importedShares));
-				}
-			}, () -> {
-				// Unable to obtain Moneydance security [%s (%s)] in account %s.
-				writeFormatted("FWIMP06", security.getName(), security.getTickerSymbol(),
-					account.getAccountName());
-			});
-		}
+			if (importedShares.compareTo(balance) != 0) {
+				// Found a different %s (%s) share balance in account %s: have %s, imported %s.
+				NumberFormat nf = MdUtil.getNumberFormat(this.locale, balance, importedShares);
+				writeFormatted("FWIMP04", secAccount.getAccountName(), security.getTickerSymbol(),
+					account.getAccountName(), nf.format(balance), nf.format(importedShares));
+			}
+		}, () -> {
+			// Unable to obtain Moneydance security [%s (%s)] in account %s.
+			writeFormatted("FWIMP06", security.getName(), security.getTickerSymbol(),
+				account.getAccountName());
+		});
 
 	} // end verifyShareBalance(Account, CurrencyType, BigDecimal)
 
