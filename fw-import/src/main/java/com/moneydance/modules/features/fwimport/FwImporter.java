@@ -26,6 +26,28 @@ import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 /**
+ * Data record to hold an imported row.
+ *
+ * @param accountNumber Account name or number
+ * @param ticker        Ticker symbol
+ * @param securityName  Security name or description
+ * @param shares        Quantity of shares
+ * @param price         Price
+ * @param balance       Balance or value
+ * @param effectiveDate Effective date
+ */
+record RowRec(
+	String accountNumber,
+	String ticker,
+	String securityName,
+	BigDecimal shares,
+	BigDecimal price,
+	BigDecimal balance,
+	LocalDate effectiveDate) {
+
+} // end record RowRec
+
+/**
  * Module used to import Fidelity NetBenefits workplace account data into
  * Moneydance.
  */
@@ -73,33 +95,42 @@ public class FwImporter extends CsvProcessor {
 	} // end importFile()
 
 	/**
+	 * Retrieve data from columns in current row
+	 * @return Populated RowRec instance
+	 */
+	private RowRec importRow() throws MduException {
+		return new RowRec(
+			getCol("col.account.num"),
+			getCol("col.ticker"),
+			getCol("col.name"),
+			new BigDecimal(getCol("col.shares")),
+			new BigDecimal(getCol("col.price")),
+			new BigDecimal(getCol("col.value")),
+			LocalDate.parse(getCol("col.date")));
+	} // end importRow()
+
+	/**
 	 * Import this row of the comma separated value file.
 	 */
 	protected void processRow() throws MduException {
-		Optional<Account> account = MdUtil.getSubAccountByInvestNumber(this.root,
-			getCol("col.account.num"));
+		RowRec imp = importRow();
+		Optional<Account> account =
+			MdUtil.getSubAccountByInvestNumber(this.root, imp.accountNumber());
 
 		if (account.isEmpty()) {
 			// Unable to obtain Moneydance investment account with number [%s].
-			writeFormatted("FWIMP05", getCol("col.account.num"));
+			writeFormatted("FWIMP05", imp.accountNumber());
 		}
-		BigDecimal balance = new BigDecimal(getCol("col.value"));
-		String secTicker = getCol("col.ticker");
-		String secName = getCol("col.name");
-		BigDecimal price = new BigDecimal(getCol("col.price"));
-		LocalDate effectiveDate = LocalDate.parse(getCol("col.date"));
-		BigDecimal shares = new BigDecimal(getCol("col.shares"));
-		CurrencyType security = this.securities.getCurrencyByTickerSymbol(secTicker);
+		CurrencyType security = this.securities.getCurrencyByTickerSymbol(imp.ticker());
 
 		if (security == null) {
-            account.ifPresent(subAcct ->
-				verifyAccountBalance(subAcct, balance, secTicker, secName));
+            account.ifPresent(subAcct -> verifyAccountBalance(subAcct, imp));
 		} else {
-			storePriceQuoteIfDiff(security, price, effectiveDate);
+			storePriceQuoteIfDiff(security, imp.price(), imp.effectiveDate());
 
-			account.ifPresent(subAcct -> verifyShareBalance(subAcct, security, shares));
+			account.ifPresent(subAcct -> verifyShareBalance(subAcct, security, imp.shares()));
 		}
-		this.dates.add(effectiveDate);
+		this.dates.add(imp.effectiveDate());
 
 	} // end processRow()
 
@@ -132,24 +163,21 @@ public class FwImporter extends CsvProcessor {
 	} // end storePriceQuoteIfDiff(CurrencyType, BigDecimal, LocalDate)
 
 	/**
-	 * @param account         Moneydance account
-	 * @param importedBalance Balance found during import
-	 * @param secTicker       Security ticker symbol found during import
-	 * @param secName         Security name found during import
+	 * @param account Moneydance account
+	 * @param imp     Imported record from current row
 	 */
-	private void verifyAccountBalance(Account account, BigDecimal importedBalance,
-									  String secTicker, String secName) {
+	private void verifyAccountBalance(Account account, RowRec imp) {
 		BigDecimal balance = MdUtil.getCurrentBalance(account);
 
-		if (importedBalance.compareTo(balance) != 0) {
+		if (imp.balance().compareTo(balance) != 0) {
 			// Found a different balance in account %s: have %s, imported %s.
 			// Note: No Moneydance security for ticker symbol [%s] (%s).
-			NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, balance, importedBalance);
+			NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, balance, imp.balance());
 			writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
-				cf.format(importedBalance), secTicker, secName);
+				cf.format(imp.balance()), imp.ticker(), imp.securityName());
 		}
 
-	} // end verifyAccountBalance(Account, BigDecimal, String, String)
+	} // end verifyAccountBalance(Account, RowRec)
 
 	/**
 	 * @param account Moneydance account
