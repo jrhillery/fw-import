@@ -25,8 +25,6 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
-import static java.math.RoundingMode.HALF_EVEN;
-
 /**
  * Module used to import Fidelity NetBenefits workplace account data into
  * Moneydance.
@@ -40,7 +38,6 @@ public class FwImporter extends CsvProcessor {
 	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "fw-import.properties";
-	private static final int PRICE_FRACTION_DIGITS = 6;
 	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("E MMM d, y");
 
 	/**
@@ -89,16 +86,16 @@ public class FwImporter extends CsvProcessor {
 		BigDecimal balance = new BigDecimal(getCol("col.value"));
 		String secTicker = getCol("col.ticker");
 		String secName = getCol("col.name");
-		CurrencyType security = this.securities.getCurrencyByTickerSymbol(secTicker);
+		BigDecimal price = new BigDecimal(getCol("col.price"));
 		LocalDate effectiveDate = LocalDate.parse(getCol("col.date"));
+		BigDecimal shares = new BigDecimal(getCol("col.shares"));
+		CurrencyType security = this.securities.getCurrencyByTickerSymbol(secTicker);
 
 		if (security == null) {
             account.ifPresent(subAcct ->
 				verifyAccountBalance(subAcct, balance, secTicker, secName));
 		} else {
-			BigDecimal shares = new BigDecimal(getCol("col.shares"));
-
-			storePriceQuoteIfDiff(security, shares, effectiveDate);
+			storePriceQuoteIfDiff(security, price, effectiveDate);
 
 			account.ifPresent(subAcct -> verifyShareBalance(subAcct, security, shares));
 		}
@@ -108,20 +105,13 @@ public class FwImporter extends CsvProcessor {
 
 	/**
 	 * @param security      The Moneydance security to use
-	 * @param shares        The number of shares included in the value
+	 * @param price         Price found during import
 	 * @param effectiveDate Effective date for quote
 	 */
-	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal shares,
-									   LocalDate effectiveDate) throws MduException {
-		BigDecimal price = new BigDecimal(getCol("col.price"));
-		BigDecimal value = new BigDecimal(getCol("col.value"));
+	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal price,
+									   LocalDate effectiveDate) {
 		int effDateInt = MdUtil.convLocalToDateInt(effectiveDate);
 
-		// see if shares * price = value to 2 places past the decimal point
-		if (!shares.multiply(price).setScale(value.scale(), HALF_EVEN).equals(value)) {
-			// no, so get the price to the sixth place past the decimal point
-			price = value.divide(shares, PRICE_FRACTION_DIGITS, HALF_EVEN);
-		}
 		SnapshotList ssList = new SnapshotList(security);
 		CurrencySnapshot snapshot = ssList.getSnapshotForDate(effDateInt);
 		BigDecimal oldPrice = getSnapshotPrice(security, snapshot);
