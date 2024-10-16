@@ -142,13 +142,13 @@ public class FwImporter extends CsvProcessor {
 	private void storePriceQuoteIfDiff(CurrencyType security, BigDecimal price,
 									   LocalDate effectiveDate) {
 		int effDateInt = MdUtil.convLocalToDateInt(effectiveDate);
-
 		SnapshotList ssList = new SnapshotList(security);
-		CurrencySnapshot snapshot = ssList.getSnapshotForDate(effDateInt);
-		BigDecimal oldPrice = getSnapshotPrice(security, snapshot);
+		Optional<CurrencySnapshot> snapshot = ssList.getSnapshotForDate(effDateInt);
+		BigDecimal oldPrice = snapshot.map(ss -> getSnapshotPrice(security, ss))
+				.orElse(BigDecimal.ONE);
 
 		// store this quote if it differs and we don't already have this security
-		if ((snapshot == null || effDateInt != snapshot.getDateInt()
+		if ((snapshot.isEmpty() || effDateInt != snapshot.get().getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
 			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, oldPrice, price);
