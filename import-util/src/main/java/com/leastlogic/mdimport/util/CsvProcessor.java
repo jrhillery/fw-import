@@ -4,7 +4,6 @@
 package com.leastlogic.mdimport.util;
 
 import java.io.BufferedReader;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -12,8 +11,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.ResourceBundle;
 
-import com.infinitekind.moneydance.model.CurrencySnapshot;
-import com.infinitekind.moneydance.model.CurrencyType;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 
@@ -174,22 +171,6 @@ public abstract class CsvProcessor {
 
 		return this.csvProps;
 	} // end getCsvProps()
-
-	/**
-	 * Retrieve the price for this snapshot and validate the current price.
-	 *
-	 * @param security The Moneydance security
-	 * @param snapshot The currency snapshot to use
-	 * @return The price as a BigDecimal
-	 */
-	protected BigDecimal getSnapshotPrice(CurrencyType security, CurrencySnapshot snapshot) {
-		double rate = snapshot.getRate();
-		BigDecimal price = MdUtil.convRateToPrice(rate);
-		MdUtil.validateCurrentUserRate(security, price, rate, this.locale)
-				.ifPresent(correction -> writeFormatted("MDUTL00", correction));
-
-		return price;
-	} // end getSnapshotPrice(CurrencyType, CurrencySnapshot)
 
 	/**
 	 * @return Our message bundle

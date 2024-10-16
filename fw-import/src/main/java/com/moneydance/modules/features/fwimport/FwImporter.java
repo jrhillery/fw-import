@@ -144,7 +144,9 @@ public class FwImporter extends CsvProcessor {
 		int effDateInt = MdUtil.convLocalToDateInt(effectiveDate);
 		SnapshotList ssList = new SnapshotList(security);
 		Optional<CurrencySnapshot> snapshot = ssList.getSnapshotForDate(effDateInt);
-		BigDecimal oldPrice = snapshot.map(ss -> getSnapshotPrice(security, ss))
+		BigDecimal oldPrice = snapshot.map(ss ->
+				MdUtil.getAndValidateCurrentSnapshotPrice(security, ss, this.locale,
+						correction -> writeFormatted("FWIMP00", correction)))
 				.orElse(BigDecimal.ONE);
 
 		// store this quote if it differs and we don't already have this security
