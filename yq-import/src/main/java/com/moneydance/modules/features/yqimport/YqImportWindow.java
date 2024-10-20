@@ -162,7 +162,8 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Read in and set our icon image.
 	 */
 	private void readIconImage() {
-		setIconImage(HTMLPane.readResourceImage("flat-funnel-32.png", getClass())); //$NON-NLS-1$
+		HTMLPane.readResourceImage("flat-funnel-32.png", getClass()) //$NON-NLS-1$
+				.ifPresent(this::setIconImage);
 
 	} // end readIconImage()
 
