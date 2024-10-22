@@ -3,6 +3,7 @@
  */
 package com.moneydance.modules.features.fwimport;
 
+import com.infinitekind.util.AppDebug;
 import com.moneydance.apps.md.controller.FeatureModule;
 
 /**
@@ -28,7 +29,7 @@ public class Main extends FeatureModule {
 	 * @see com.moneydance.apps.md.controller.FeatureModule#invoke(java.lang.String)
 	 */
 	public void invoke(String uri) {
-		System.err.println(getName() + " invoked with uri [" + uri + ']');
+		AppDebug.ALL.log("%s invoked with uri [%s]".formatted(getName(), uri));
 		showWindow();
 
 		this.importer = new FwImporter(this.importWindow, getContext().getCurrentAccountBook());
@@ -68,12 +69,15 @@ public class Main extends FeatureModule {
 	} // end commitChanges()
 
 	private void handleException(Throwable e) {
+		AppDebug.ALL.log("Problem invoking %s".formatted(getName()), e);
 		this.importWindow.addText(e.toString());
 		this.importWindow.enableCommitButton(false);
-		e.printStackTrace(System.err);
 
 	} // end handleException(Throwable)
 
+	/**
+	 * Stop execution, close our console window and release resources.
+	 */
 	public void cleanup() {
 		closeWindow();
 
@@ -85,7 +89,7 @@ public class Main extends FeatureModule {
 	} // end getName()
 
 	/**
-	 * Show our window.
+	 * Show our console window.
 	 */
 	private synchronized void showWindow() {
 		if (this.importWindow == null) {

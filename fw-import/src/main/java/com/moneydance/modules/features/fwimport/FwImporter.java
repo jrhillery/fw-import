@@ -172,8 +172,8 @@ public class FwImporter extends CsvProcessor {
 		BigDecimal balance = MdUtil.getCurrentBalance(account);
 
 		if (imp.balance().compareTo(balance) != 0) {
-			// Found a different balance in account %s: have %s, imported %s.
-			// Note: No Moneydance security for ticker symbol [%s] (%s).
+			// Found a different balance in account %s: have %s, imported %s;
+			// Note: No Moneydance security for ticker symbol [%s] (%s)
 			NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, balance, imp.balance());
 			writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
 				cf.format(imp.balance()), imp.ticker(), imp.securityName());

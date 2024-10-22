@@ -86,7 +86,7 @@ public abstract class CsvProcessor {
 		String csvColumnKey = getCsvProps().getProperty(propKey);
 		String val = this.csvRowMap.get(csvColumnKey);
 		if (val == null) {
-			// Unable to locate column %s (%s) in %s. Found columns %s
+			// Unable to locate column %s (%s) in %s; Found columns %s
 			throw asException(null, "MDUTL11", csvColumnKey, propKey,
 				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
 		}
@@ -113,7 +113,7 @@ public abstract class CsvProcessor {
 		try {
 			reader = Files.newBufferedReader(this.importWindow.getFileToImport());
 		} catch (Exception e) {
-			// Exception opening file %s. %s
+			// Exception opening file %s: %s
 			writeFormatted("MDUTL12", this.importWindow.getFileToImport(), e);
 		}
 
