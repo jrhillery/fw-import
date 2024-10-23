@@ -3,6 +3,7 @@
  */
 package com.moneydance.modules.features.yqimport;
 
+import com.infinitekind.util.AppDebug;
 import com.leastlogic.mdimport.util.CsvChooser;
 import com.leastlogic.mdimport.util.CsvProcessWindow;
 import com.leastlogic.moneydance.util.MdStorageUtil;
@@ -225,6 +226,7 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * @param text HTML-text to append to the output log text area
 	 */
 	public void addText(String text) {
+		AppDebug.DEBUG.log(text);
 		this.pnOutputLog.addText(text);
 
 	} // end addText(String)

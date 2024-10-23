@@ -7,6 +7,7 @@ import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.util.AppDebug;
 import com.leastlogic.mdimport.util.CsvProcessor;
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
@@ -77,8 +78,8 @@ public class YqImporter extends CsvProcessor {
 		LocalDate effectiveDate = parseDate(getCol("col.date"));
 
 		if (security == null) {
-			System.err.format(this.locale, "No Moneydance security for ticker symbol [%s].%n",
-				getCol("col.ticker"));
+			AppDebug.ALL.log("No Moneydance security for ticker symbol [%s]"
+					.formatted(getCol("col.ticker")));
 		} else {
 			storePriceQuoteIfDiff(security, effectiveDate);
 		}
@@ -133,7 +134,7 @@ public class YqImporter extends CsvProcessor {
 				securityHandler.storeNewPrice(newPrice, importDate, Long.parseLong(volume),
 					Double.parseDouble(highPrice), Double.parseDouble(lowPrice));
 			} catch (Exception e) {
-				// Exception parsing quote data (volume [%s], high [%s], low [%s]). %s
+				// Exception parsing quote data (volume [%s], high [%s], low [%s]): %s
 				writeFormatted("YQIMP18", volume, highPrice, lowPrice, e.toString());
 				securityHandler.storeNewPrice(newPrice, importDate);
 			}
@@ -153,7 +154,7 @@ public class YqImporter extends CsvProcessor {
 		try {
 			mktDate = LocalDate.parse(marketDate, marketDateFmt);
 		} catch (Exception e) {
-			// Exception parsing date from [%s]. %s
+			// Exception parsing date from [%s]: %s
 			throw asException(e, "YQIMP17", marketDate, e.toString());
 		}
 
