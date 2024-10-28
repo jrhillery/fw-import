@@ -14,7 +14,7 @@ import java.util.ResourceBundle;
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
-import com.infinitekind.util.AppDebug;
+import com.leastlogic.moneydance.util.MdLog;
 import com.leastlogic.moneydance.util.MdUtil;
 
 public class CsvChooser {
@@ -78,7 +78,7 @@ public class CsvChooser {
 				++numFound;
 			}
 		} catch (Exception e) {
-			AppDebug.ALL.log("Problem finding files like %s to import from %s"
+			MdLog.all("Problem finding files like %s to import from %s"
 					.formatted(defaultFileGlobPattern, this.defaultDirectory), e);
 		}
 

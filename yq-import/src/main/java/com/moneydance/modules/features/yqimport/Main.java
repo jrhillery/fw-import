@@ -3,7 +3,7 @@
  */
 package com.moneydance.modules.features.yqimport;
 
-import com.infinitekind.util.AppDebug;
+import com.leastlogic.moneydance.util.MdLog;
 import com.moneydance.apps.md.controller.FeatureModule;
 
 /**
@@ -20,6 +20,7 @@ public class Main extends FeatureModule {
 	 */
 	public void init() {
 		getContext().registerFeature(this, "do:yq:import", null, getName());
+		MdLog.setPrefix("YQIMPT: ");
 
 	} // end init()
 
@@ -29,7 +30,7 @@ public class Main extends FeatureModule {
 	 * @see com.moneydance.apps.md.controller.FeatureModule#invoke(java.lang.String)
 	 */
 	public void invoke(String uri) {
-		AppDebug.ALL.log("%s invoked with uri [%s]".formatted(getName(), uri));
+		MdLog.all("%s invoked with uri [%s]".formatted(getName(), uri));
 		showWindow();
 
 		this.importer = new YqImporter(this.importWindow, getContext().getCurrentAccountBook());
@@ -69,7 +70,7 @@ public class Main extends FeatureModule {
 	} // end commitChanges()
 
 	private void handleException(Throwable e) {
-		AppDebug.ALL.log("Problem invoking %s".formatted(getName()), e);
+		MdLog.all("Problem invoking %s".formatted(getName()), e);
 		this.importWindow.addText(e.toString());
 		this.importWindow.enableCommitButton(false);
 

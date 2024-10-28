@@ -7,12 +7,8 @@ import com.infinitekind.moneydance.model.AccountBook;
 import com.infinitekind.moneydance.model.CurrencySnapshot;
 import com.infinitekind.moneydance.model.CurrencyTable;
 import com.infinitekind.moneydance.model.CurrencyType;
-import com.infinitekind.util.AppDebug;
 import com.leastlogic.mdimport.util.CsvProcessor;
-import com.leastlogic.moneydance.util.MdUtil;
-import com.leastlogic.moneydance.util.MduException;
-import com.leastlogic.moneydance.util.SecurityHandler;
-import com.leastlogic.moneydance.util.SnapshotList;
+import com.leastlogic.moneydance.util.*;
 import com.leastlogic.swing.util.HTMLPane;
 
 import java.math.BigDecimal;
@@ -78,7 +74,7 @@ public class YqImporter extends CsvProcessor {
 		LocalDate effectiveDate = parseDate(getCol("col.date"));
 
 		if (security == null) {
-			AppDebug.ALL.log("No Moneydance security for ticker symbol [%s]"
+			MdLog.all("No Moneydance security for ticker symbol [%s]"
 					.formatted(getCol("col.ticker")));
 		} else {
 			storePriceQuoteIfDiff(security, effectiveDate);
