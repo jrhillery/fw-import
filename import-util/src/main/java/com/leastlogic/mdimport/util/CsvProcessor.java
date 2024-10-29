@@ -9,21 +9,18 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.ResourceBundle;
 
 import com.leastlogic.moneydance.util.MdUtil;
 import com.leastlogic.moneydance.util.MduException;
 
 public abstract class CsvProcessor {
-	protected final CsvProcessWindow importWindow;
+	protected final CsvProcessWindow impWin;
 	protected final Locale locale;
 	private final String propertiesFileName;
 
 	private final Map<String, String> csvRowMap = new LinkedHashMap<>();
 	private Properties csvProps = null;
-	private ResourceBundle msgBundle = null;
 
-	private static final String baseMessageBundleName = "com.leastlogic.mdimport.util.MdUtilMessages";
 	private static final char DOUBLE_QUOTE = '"';
 
 	/**
@@ -33,7 +30,7 @@ public abstract class CsvProcessor {
 	 * @param propertiesFileName Our properties file name
 	 */
 	protected CsvProcessor(CsvProcessWindow importWindow, String propertiesFileName) {
-		this.importWindow = importWindow;
+		this.impWin = importWindow;
 		this.locale = importWindow.getLocale();
 		this.propertiesFileName = propertiesFileName;
 
@@ -86,9 +83,8 @@ public abstract class CsvProcessor {
 		String csvColumnKey = getCsvProps().getProperty(propKey);
 		String val = this.csvRowMap.get(csvColumnKey);
 		if (val == null) {
-			// Unable to locate column %s (%s) in %s; Found columns %s
-			throw asException(null, "MDUTL11", csvColumnKey, propKey,
-				this.importWindow.getFileToImport(), this.csvRowMap.keySet());
+			throw new MduException(null, "Unable to locate column %s (%s) in %s; Found columns %s",
+				csvColumnKey, propKey, this.impWin.getFileToImport(), this.csvRowMap.keySet());
 		}
 		int quoteLoc = val.indexOf(DOUBLE_QUOTE);
 
@@ -111,10 +107,10 @@ public abstract class CsvProcessor {
 	private BufferedReader openFile() {
 		BufferedReader reader = null;
 		try {
-			reader = Files.newBufferedReader(this.importWindow.getFileToImport());
+			reader = Files.newBufferedReader(this.impWin.getFileToImport());
 		} catch (Exception e) {
-			// Exception opening file %s: %s
-			writeFormatted("MDUTL12", this.importWindow.getFileToImport(), e);
+			this.impWin.addText("Exception opening file %s: %s"
+				.formatted(this.impWin.getFileToImport(), e));
 		}
 
 		return reader;
@@ -129,8 +125,7 @@ public abstract class CsvProcessor {
 
 			return reader.ready();
 		} catch (Exception e) {
-			// Exception checking file %s.
-			throw asException(e, "MDUTL13", this.importWindow.getFileToImport());
+			throw new MduException(e, "Exception checking file %s", this.impWin.getFileToImport());
 		}
 	} // end hasMore(BufferedReader)
 
@@ -144,8 +139,8 @@ public abstract class CsvProcessor {
 
 			return line == null ? null : line.split(",");
 		} catch (Exception e) {
-			// Exception reading from file %s.
-			throw asException(e, "MDUTL14", this.importWindow.getFileToImport());
+			throw new MduException(e, "Exception reading from file %s",
+				this.impWin.getFileToImport());
 		}
 	} // end readLine(BufferedReader)
 
@@ -171,49 +166,5 @@ public abstract class CsvProcessor {
 
 		return this.csvProps;
 	} // end getCsvProps()
-
-	/**
-	 * @return Our message bundle
-	 */
-	private ResourceBundle getMsgBundle() {
-		if (this.msgBundle == null) {
-			this.msgBundle = MdUtil.getMsgBundle(baseMessageBundleName, this.locale);
-		}
-
-		return this.msgBundle;
-	} // end getMsgBundle()
-
-	/**
-	 * @param cause Exception that caused this (null if none)
-	 * @param key The resource bundle key (or message)
-	 * @param params Optional parameters for the detail message
-	 */
-	private MduException asException(Throwable cause, String key, Object... params) {
-
-		return new MduException(cause, retrieveMessage(key), params);
-	} // end asException(Throwable, String, Object...)
-
-	/**
-	 * @param key The resource bundle key (or message)
-	 * @return Message for this key
-	 */
-	private String retrieveMessage(String key) {
-		try {
-
-			return getMsgBundle().getString(key);
-		} catch (Exception e) {
-			// just use the key when not found
-			return key;
-		}
-	} // end retrieveMessage(String)
-
-	/**
-	 * @param key The resource bundle key (or message)
-	 * @param params Optional array of parameters for the message
-	 */
-	private void writeFormatted(String key, Object... params) {
-		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
-
-	} // end writeFormatted(String, Object...)
 
 } // end class CsvProcessor

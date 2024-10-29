@@ -18,7 +18,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Optional;
-import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 /**
@@ -29,7 +28,6 @@ public class YqImporter extends CsvProcessor {
 
 	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
 	private final LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
-	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "yq-import.properties";
 	private static final DateTimeFormatter marketDateFmt = DateTimeFormatter.ofPattern("yyyy/M/d");
@@ -51,17 +49,15 @@ public class YqImporter extends CsvProcessor {
 	 * Import the selected comma separated value file.
 	 */
 	public void importFile() throws MduException {
-		// Importing price data from file %s.
-		writeFormatted("YQIMP01", this.importWindow.getFileToImport().getFileName());
+		this.impWin.addText("Importing price data from file %s"
+			.formatted(this.impWin.getFileToImport().getFileName()));
 
 		processFile();
-		// Found effective date%s %s.
-		writeFormatted("YQIMP09", this.dates.size() == 1 ? "" : "s",
-			this.dates.stream().map(dt -> dt.format(dateFmt)).collect(Collectors.joining("; ")));
+		this.impWin.addText("Found effective date%s %s".formatted(this.dates.size() == 1 ? "" : "s",
+			this.dates.stream().map(dt -> dt.format(dateFmt)).collect(Collectors.joining("; "))));
 
 		if (!isModified()) {
-			// No new price data found.
-			writeFormatted("YQIMP08");
+			this.impWin.addText("No new price data found");
 		}
 
 	} // end importFile()
@@ -94,19 +90,18 @@ public class YqImporter extends CsvProcessor {
 		SnapshotList ssList = new SnapshotList(security);
 		Optional<CurrencySnapshot> snapshot = ssList.getSnapshotForDate(effDateInt);
 		BigDecimal oldPrice = snapshot.map(ss ->
-				MdUtil.getAndValidateCurrentSnapshotPrice(security, ss, this.locale,
-						correction -> writeFormatted("YQIMP00", correction)))
-				.orElse(BigDecimal.ONE);
+			MdUtil.getAndValidateCurrentSnapshotPrice(security, ss, this.locale, this.impWin::addText))
+			.orElse(BigDecimal.ONE);
 
 		// store this quote if it differs and we don't already have this security
 		if ((snapshot.isEmpty() || effDateInt != snapshot.get().getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
-			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, oldPrice, price);
 			double newPrice = price.doubleValue();
-			writeFormatted("YQIMP03", security.getName(), security.getTickerSymbol(),
+			this.impWin.addText("Change %s (%s) price from %s to %s (<span class=\"%s\">%+.2f%%</span>)"
+				.formatted(security.getName(), security.getTickerSymbol(),
 				priceFmt.format(oldPrice), priceFmt.format(newPrice),
-				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
+				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100));
 
 			storePriceUpdate(ssList, newPrice, effDateInt);
 		}
@@ -130,8 +125,9 @@ public class YqImporter extends CsvProcessor {
 				securityHandler.storeNewPrice(newPrice, importDate, Long.parseLong(volume),
 					Double.parseDouble(highPrice), Double.parseDouble(lowPrice));
 			} catch (Exception e) {
-				// Exception parsing quote data (volume [%s], high [%s], low [%s]): %s
-				writeFormatted("YQIMP18", volume, highPrice, lowPrice, e.toString());
+				this.impWin.addText(
+					"Exception parsing quote data (volume [%s], high [%s], low [%s]): %s"
+					.formatted(volume, highPrice, lowPrice, e.toString()));
 				securityHandler.storeNewPrice(newPrice, importDate);
 			}
 		} else {
@@ -150,8 +146,7 @@ public class YqImporter extends CsvProcessor {
 		try {
 			mktDate = LocalDate.parse(marketDate, marketDateFmt);
 		} catch (Exception e) {
-			// Exception parsing date from [%s]: %s
-			throw asException(e, "YQIMP17", marketDate, e.toString());
+			throw new MduException(e, "Exception parsing date from [%s]: %s", marketDate, e);
 		}
 
 		return mktDate;
@@ -174,8 +169,8 @@ public class YqImporter extends CsvProcessor {
 		int numPricesSet = this.priceChanges.size();
 		this.priceChanges.forEach((security, sHandler) -> sHandler.applyUpdate());
 
-		// Changed %d security price%s.
-		writeFormatted("YQIMP07", numPricesSet, numPricesSet == 1 ? "" : "s");
+		this.impWin.addText("Changed %d security price%s"
+			.formatted(numPricesSet, numPricesSet == 1 ? "" : "s"));
 
 		forgetChanges();
 
@@ -208,50 +203,5 @@ public class YqImporter extends CsvProcessor {
 
 		return null;
 	} // end releaseResources()
-
-	/**
-	 * @return Our message bundle
-	 */
-	private ResourceBundle getMsgBundle() {
-		if (this.msgBundle == null) {
-			this.msgBundle = MdUtil.getMsgBundle(YqImportWindow.baseMessageBundleName,
-				this.locale);
-		}
-
-		return this.msgBundle;
-	} // end getMsgBundle()
-
-	/**
-	 * @param cause  Exception that caused this (null if none)
-	 * @param key    The resource bundle key (or message)
-	 * @param params Optional parameters for the detail message
-	 */
-	private MduException asException(Throwable cause, String key, Object... params) {
-
-		return new MduException(cause, retrieveMessage(key), params);
-	} // end asException(Throwable, String, Object...)
-
-	/**
-	 * @param key The resource bundle key (or message)
-	 * @return Message for this key
-	 */
-	private String retrieveMessage(String key) {
-		try {
-
-			return getMsgBundle().getString(key);
-		} catch (Exception e) {
-			// just use the key when not found
-			return key;
-		}
-	} // end retrieveMessage(String)
-
-	/**
-	 * @param key The resource bundle key (or message)
-	 * @param params Optional array of parameters for the message
-	 */
-	private void writeFormatted(String key, Object... params) {
-		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
-
-	} // end writeFormatted(String, Object...)
 
 } // end class YqImporter

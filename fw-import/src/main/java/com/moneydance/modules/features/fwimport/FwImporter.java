@@ -22,7 +22,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Optional;
-import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
 /**
@@ -57,7 +56,6 @@ public class FwImporter extends CsvProcessor {
 
 	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
 	private final LinkedHashSet<LocalDate> dates = new LinkedHashSet<>();
-	private ResourceBundle msgBundle = null;
 
 	private static final String propertiesFileName = "fw-import.properties";
 	private static final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("E MMM d, y");
@@ -79,17 +77,15 @@ public class FwImporter extends CsvProcessor {
 	 * Import the selected comma separated value file.
 	 */
 	public void importFile() throws MduException {
-		// Importing price data from file %s.
-		writeFormatted("FWIMP01", this.importWindow.getFileToImport().getFileName());
+		this.impWin.addText("Importing price data from file %s"
+			.formatted(this.impWin.getFileToImport().getFileName()));
 
 		processFile();
-		// Found effective date%s %s.
-		writeFormatted("FWIMP09", this.dates.size() == 1 ? "" : "s",
-			this.dates.stream().map(dt -> dt.format(dateFmt)).collect(Collectors.joining("; ")));
+		this.impWin.addText("Found effective date%s %s".formatted(this.dates.size() == 1 ? "" : "s",
+			this.dates.stream().map(dt -> dt.format(dateFmt)).collect(Collectors.joining("; "))));
 
 		if (!isModified()) {
-			// No new price data found.
-			writeFormatted("FWIMP08");
+			this.impWin.addText("No new price data found");
 		}
 
 	} // end importFile()
@@ -118,8 +114,8 @@ public class FwImporter extends CsvProcessor {
 			MdUtil.getSubAccountByInvestNumber(this.root, imp.accountNumber());
 
 		if (account.isEmpty()) {
-			// Unable to obtain Moneydance investment account with number [%s].
-			writeFormatted("FWIMP05", imp.accountNumber());
+			this.impWin.addText("Unable to obtain Moneydance investment account with number [%s]"
+				.formatted(imp.accountNumber()));
 		}
 		CurrencyType security = this.securities.getCurrencyByTickerSymbol(imp.ticker());
 
@@ -145,19 +141,18 @@ public class FwImporter extends CsvProcessor {
 		SnapshotList ssList = new SnapshotList(security);
 		Optional<CurrencySnapshot> snapshot = ssList.getSnapshotForDate(effDateInt);
 		BigDecimal oldPrice = snapshot.map(ss ->
-				MdUtil.getAndValidateCurrentSnapshotPrice(security, ss, this.locale,
-						correction -> writeFormatted("FWIMP00", correction)))
-				.orElse(BigDecimal.ONE);
+			MdUtil.getAndValidateCurrentSnapshotPrice(security, ss, this.locale, this.impWin::addText))
+			.orElse(BigDecimal.ONE);
 
 		// store this quote if it differs and we don't already have this security
 		if ((snapshot.isEmpty() || effDateInt != snapshot.get().getDateInt()
 				|| price.compareTo(oldPrice) != 0) && !this.priceChanges.containsKey(security)) {
-			// Change %s (%s) price from %s to %s (<span class="%s">%+.2f%%</span>).
 			NumberFormat priceFmt = MdUtil.getCurrencyFormat(this.locale, oldPrice, price);
 			double newPrice = price.doubleValue();
-			writeFormatted("FWIMP03", security.getName(), security.getTickerSymbol(),
+			this.impWin.addText("Change %s (%s) price from %s to %s (<span class=\"%s\">%+.2f%%</span>)"
+				.formatted(security.getName(), security.getTickerSymbol(),
 				priceFmt.format(oldPrice), priceFmt.format(newPrice),
-				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100);
+				HTMLPane.getSpanCl(price, oldPrice), (newPrice / oldPrice.doubleValue() - 1) * 100));
 
 			addHandler(new SecurityHandler(ssList).storeNewPrice(newPrice, effDateInt));
 		}
@@ -172,36 +167,35 @@ public class FwImporter extends CsvProcessor {
 		BigDecimal balance = MdUtil.getCurrentBalance(account);
 
 		if (imp.balance().compareTo(balance) != 0) {
-			// Found a different balance in account %s: have %s, imported %s;
-			// Note: No Moneydance security for ticker symbol [%s] (%s)
 			NumberFormat cf = MdUtil.getCurrencyFormat(this.locale, balance, imp.balance());
-			writeFormatted("FWIMP02", account.getAccountName(), cf.format(balance),
-				cf.format(imp.balance()), imp.ticker(), imp.securityName());
+			this.impWin.addText(("Found a different balance in account %s: have %s, imported %s;"
+				+ " Note: No Moneydance security for ticker symbol [%s] (%s)")
+				.formatted(account.getAccountName(), cf.format(balance),
+				cf.format(imp.balance()), imp.ticker(), imp.securityName()));
 		}
 
 	} // end verifyAccountBalance(Account, RowRec)
 
 	/**
-	 * @param account Moneydance account
-	 * @param security The Moneydance security to use
+	 * @param account        Moneydance account
+	 * @param sec            The Moneydance security to use
 	 * @param importedShares Shares found during import
 	 */
-	private void verifyShareBalance(Account account, CurrencyType security,
+	private void verifyShareBalance(Account account, CurrencyType sec,
 									BigDecimal importedShares) {
-		MdUtil.getSubAccountByName(account, security.getName()).ifPresentOrElse(secAccount -> {
+		MdUtil.getSubAccountByName(account, sec.getName()).ifPresentOrElse(secAccount -> {
 			BigDecimal balance = MdUtil.getCurrentBalance(secAccount);
 
 			if (importedShares.compareTo(balance) != 0) {
-				// Found a different %s (%s) share balance in account %s: have %s, imported %s.
 				NumberFormat nf = MdUtil.getNumberFormat(this.locale, balance, importedShares);
-				writeFormatted("FWIMP04", secAccount.getAccountName(), security.getTickerSymbol(),
-					account.getAccountName(), nf.format(balance), nf.format(importedShares));
+				this.impWin.addText(
+					"Found a different %s (%s) share balance in account %s: have %s, imported %s"
+					.formatted(secAccount.getAccountName(), sec.getTickerSymbol(),
+					account.getAccountName(), nf.format(balance), nf.format(importedShares)));
 			}
-		}, () -> {
-			// Unable to obtain Moneydance security [%s (%s)] in account %s.
-			writeFormatted("FWIMP06", security.getName(), security.getTickerSymbol(),
-				account.getAccountName());
-		});
+		},
+		() -> this.impWin.addText("Unable to obtain Moneydance security [%s (%s)] in account %s"
+			.formatted(sec.getName(), sec.getTickerSymbol(), account.getAccountName())));
 
 	} // end verifyShareBalance(Account, CurrencyType, BigDecimal)
 
@@ -222,8 +216,8 @@ public class FwImporter extends CsvProcessor {
 		int numPricesSet = this.priceChanges.size();
 		this.priceChanges.forEach((security, sHandler) -> sHandler.applyUpdate());
 
-		// Changed %d security price%s.
-		writeFormatted("FWIMP07", numPricesSet, numPricesSet == 1 ? "" : "s");
+		this.impWin.addText("Changed %d security price%s"
+			.formatted(numPricesSet, numPricesSet == 1 ? "" : "s"));
 
 		forgetChanges();
 
@@ -256,40 +250,5 @@ public class FwImporter extends CsvProcessor {
 
 		return null;
 	} // end releaseResources()
-
-	/**
-	 * @return Our message bundle
-	 */
-	private ResourceBundle getMsgBundle() {
-		if (this.msgBundle == null) {
-			this.msgBundle = MdUtil.getMsgBundle(FwImportWindow.baseMessageBundleName,
-				this.locale);
-		}
-
-		return this.msgBundle;
-	} // end getMsgBundle()
-
-	/**
-	 * @param key The resource bundle key (or message)
-	 * @return Message for this key
-	 */
-	private String retrieveMessage(String key) {
-		try {
-
-			return getMsgBundle().getString(key);
-		} catch (Exception e) {
-			// just use the key when not found
-			return key;
-		}
-	} // end retrieveMessage(String)
-
-	/**
-	 * @param key The resource bundle key (or message)
-	 * @param params Optional array of parameters for the message
-	 */
-	private void writeFormatted(String key, Object... params) {
-		this.importWindow.addText(String.format(this.locale, retrieveMessage(key), params));
-
-	} // end writeFormatted(String, Object...)
 
 } // end class FwImporter
