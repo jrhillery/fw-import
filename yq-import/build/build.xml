@@ -32,7 +32,7 @@ http://jakarta.apache.org/ant/index.html
   </target>
 
   <target name="yqimport" depends="init">
-    <javac debug="${debug}" optimize="${optimize}"
+    <javac debug="${debug}" optimize="${optimize}" release="21"
       classpathref="classpath" destdir="${build}">
         <src path="${src}/src/main/java"/>
         <src path="${importutil}/src/main/java"/>
