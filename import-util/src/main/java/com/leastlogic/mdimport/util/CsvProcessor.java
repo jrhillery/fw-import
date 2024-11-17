@@ -3,6 +3,9 @@
  */
 package com.leastlogic.mdimport.util;
 
+import com.leastlogic.moneydance.util.MdUtil;
+import com.leastlogic.moneydance.util.MduException;
+
 import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.util.LinkedHashMap;
@@ -10,10 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
-import com.leastlogic.moneydance.util.MdUtil;
-import com.leastlogic.moneydance.util.MduException;
-
-public abstract class CsvProcessor {
+public abstract class CsvProcessor implements AutoCloseable {
 	protected final CsvProcessWindow impWin;
 	protected final Locale locale;
 	private final String propertiesFileName;
@@ -33,6 +33,7 @@ public abstract class CsvProcessor {
 		this.impWin = importWindow;
 		this.locale = importWindow.getLocale();
 		this.propertiesFileName = propertiesFileName;
+		importWindow.addCloseableResource(this);
 
 	} // end (CsvProcessWindow, Locale, String, String) constructor
 
@@ -166,5 +167,13 @@ public abstract class CsvProcessor {
 
 		return this.csvProps;
 	} // end getCsvProps()
+
+	/**
+	 * Close this resource, relinquishing any underlying resources.
+	 */
+	public void close() {
+		// nothing to release
+
+	} // end close()
 
 } // end class CsvProcessor

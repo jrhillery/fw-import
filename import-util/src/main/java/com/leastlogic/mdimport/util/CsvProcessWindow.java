@@ -23,4 +23,11 @@ public interface CsvProcessWindow {
 	 */
 	Locale getLocale();
 
+	/**
+	 * Store an object with resources to close.
+	 *
+	 * @param closeable The object managing closeable resources
+	 */
+	void addCloseableResource(AutoCloseable closeable);
+
 } // end interface CsvProcessWindow

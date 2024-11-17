@@ -3,16 +3,9 @@
  */
 package com.moneydance.modules.features.fwimport;
 
-import com.infinitekind.moneydance.model.Account;
-import com.infinitekind.moneydance.model.AccountBook;
-import com.infinitekind.moneydance.model.CurrencySnapshot;
-import com.infinitekind.moneydance.model.CurrencyTable;
-import com.infinitekind.moneydance.model.CurrencyType;
+import com.infinitekind.moneydance.model.*;
 import com.leastlogic.mdimport.util.CsvProcessor;
-import com.leastlogic.moneydance.util.MdUtil;
-import com.leastlogic.moneydance.util.MduException;
-import com.leastlogic.moneydance.util.SecurityHandler;
-import com.leastlogic.moneydance.util.SnapshotList;
+import com.leastlogic.moneydance.util.*;
 import com.leastlogic.swing.util.HTMLPane;
 
 import java.math.BigDecimal;
@@ -50,7 +43,7 @@ record RowRec(
  * Module used to import Fidelity NetBenefits workplace account data into
  * Moneydance.
  */
-public class FwImporter extends CsvProcessor {
+public class FwImporter extends CsvProcessor implements StagedInterface {
 	private final Account root;
 	private final CurrencyTable securities;
 
@@ -70,6 +63,7 @@ public class FwImporter extends CsvProcessor {
 		super(importWindow, propertiesFileName);
 		this.root = accountBook.getRootAccount();
 		this.securities = accountBook.getCurrencies();
+		importWindow.setStaged(this);
 
 	} // end (FwImportWindow, AccountBook) constructor
 
@@ -211,16 +205,17 @@ public class FwImporter extends CsvProcessor {
 
 	/**
 	 * Commit any changes to Moneydance.
+	 *
+	 * @return Optional summary of the changes committed
 	 */
-	public void commitChanges() {
+	public Optional<String> commitChanges() {
 		int numPricesSet = this.priceChanges.size();
+
 		this.priceChanges.forEach((security, sHandler) -> sHandler.applyUpdate());
-
-		this.impWin.addText("Changed %d security price%s"
-			.formatted(numPricesSet, numPricesSet == 1 ? "" : "s"));
-
 		forgetChanges();
 
+		return Optional.of("Changed %d security price%s"
+			.formatted(numPricesSet, numPricesSet == 1 ? "" : "s"));
 	} // end commitChanges()
 
 	/**
@@ -239,16 +234,5 @@ public class FwImporter extends CsvProcessor {
 
 		return !this.priceChanges.isEmpty();
 	} // end isModified()
-
-	/**
-	 * Release any resources we acquired.
-	 *
-	 * @return null
-	 */
-	public FwImporter releaseResources() {
-		// nothing to release
-
-		return null;
-	} // end releaseResources()
 
 } // end class FwImporter

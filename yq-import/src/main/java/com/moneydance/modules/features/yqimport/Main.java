@@ -9,7 +9,7 @@ import com.moneydance.apps.md.controller.FeatureModule;
 /**
  * Module used to import Yahoo quote data into Moneydance.
  */
-public class Main extends FeatureModule {
+public class Main extends FeatureModule implements AutoCloseable {
 	private YqImportWindow importWindow = null;
 	private YqImporter importer = null;
 
@@ -54,21 +54,6 @@ public class Main extends FeatureModule {
 
 	} // end importFile()
 
-	/**
-	 * This is called when the commit button is selected.
-	 */
-	void commitChanges() {
-		try {
-			synchronized (this) {
-				this.importer.commitChanges();
-			}
-			this.importWindow.enableCommitButton(this.importer.isModified());
-		} catch (Throwable e) {
-			handleException(e);
-		}
-
-	} // end commitChanges()
-
 	private void handleException(Throwable e) {
 		MdLog.all("Problem invoking %s".formatted(getName()), e);
 		this.importWindow.addText(e.toString());
@@ -79,8 +64,9 @@ public class Main extends FeatureModule {
 	/**
 	 * Stop execution, close our console window and release resources.
 	 */
-	public void cleanup() {
-		closeWindow();
+	public synchronized void cleanup() {
+		if (this.importWindow != null)
+			this.importWindow = this.importWindow.goAway();
 
 	} // end cleanup()
 
@@ -96,6 +82,7 @@ public class Main extends FeatureModule {
 		if (this.importWindow == null) {
 			this.importWindow = new YqImportWindow(this,
 				getContext().getCurrentAccountBook().getLocalStorage());
+			this.importWindow.addCloseableResource(this);
 			this.importWindow.setVisible(true);
 		} else {
 			this.importWindow.setVisible(true);
@@ -106,15 +93,12 @@ public class Main extends FeatureModule {
 	} // end showWindow()
 
 	/**
-	 * Close our window and release resources.
+	 * Closes this resource, relinquishing any underlying resources.
 	 */
-	synchronized void closeWindow() {
-		if (this.importWindow != null)
-			this.importWindow = this.importWindow.goAway();
+	public void close() {
+		this.importWindow = null;
+		this.importer = null;
 
-		if (this.importer != null)
-			this.importer = this.importer.releaseResources();
-
-	} // end closeWindow()
+	} // end close()
 
 } // end class Main

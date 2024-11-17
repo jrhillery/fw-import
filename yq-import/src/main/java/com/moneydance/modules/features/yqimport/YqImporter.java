@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 /**
  * Module used to import Yahoo quote data into Moneydance.
  */
-public class YqImporter extends CsvProcessor {
+public class YqImporter extends CsvProcessor implements StagedInterface {
 	private final CurrencyTable securities;
 
 	private final LinkedHashMap<CurrencyType, SecurityHandler> priceChanges = new LinkedHashMap<>();
@@ -42,6 +42,7 @@ public class YqImporter extends CsvProcessor {
 	public YqImporter(YqImportWindow importWindow, AccountBook accountBook) {
 		super(importWindow, propertiesFileName);
 		this.securities = accountBook.getCurrencies();
+		importWindow.setStaged(this);
 
 	} // end (YqImportWindow, AccountBook) constructor
 
@@ -164,16 +165,17 @@ public class YqImporter extends CsvProcessor {
 
 	/**
 	 * Commit any changes to Moneydance.
+	 *
+	 * @return Optional summary of the changes committed
 	 */
-	public void commitChanges() {
+	public Optional<String> commitChanges() {
 		int numPricesSet = this.priceChanges.size();
+
 		this.priceChanges.forEach((security, sHandler) -> sHandler.applyUpdate());
-
-		this.impWin.addText("Changed %d security price%s"
-			.formatted(numPricesSet, numPricesSet == 1 ? "" : "s"));
-
 		forgetChanges();
 
+		return Optional.of("Changed %d security price%s"
+			.formatted(numPricesSet, numPricesSet == 1 ? "" : "s"));
 	} // end commitChanges()
 
 	/**
@@ -192,16 +194,5 @@ public class YqImporter extends CsvProcessor {
 
 		return !this.priceChanges.isEmpty();
 	} // end isModified()
-
-	/**
-	 * Release any resources we acquired.
-	 *
-	 * @return null
-	 */
-	public YqImporter releaseResources() {
-		// nothing to release
-
-		return null;
-	} // end releaseResources()
 
 } // end class YqImporter

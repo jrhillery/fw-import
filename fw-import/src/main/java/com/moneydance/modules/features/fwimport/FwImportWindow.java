@@ -7,6 +7,7 @@ import com.leastlogic.mdimport.util.CsvChooser;
 import com.leastlogic.mdimport.util.CsvProcessWindow;
 import com.leastlogic.moneydance.util.MdLog;
 import com.leastlogic.moneydance.util.MdStorageUtil;
+import com.leastlogic.moneydance.util.StagedInterface;
 import com.leastlogic.swing.util.AwtScreenUtil;
 import com.leastlogic.swing.util.HTMLPane;
 
@@ -24,6 +25,7 @@ import java.beans.PropertyChangeListener;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.ResourceBundle;
 
@@ -40,6 +42,8 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	private JButton btnCommit;
 	private HTMLPane pnOutputLog;
 	private final AwtScreenUtil screenUtil = new AwtScreenUtil(this);
+	private StagedInterface staged = null;
+	private final ArrayDeque<AutoCloseable> closeableResources = new ArrayDeque<>();
 
 	static final String baseMessageBundleName = "com.moneydance.modules.features.fwimport.FwImportMessages"; //$NON-NLS-1$
 	private static final ResourceBundle msgBundle = ResourceBundle.getBundle(baseMessageBundleName);
@@ -155,7 +159,22 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.txtFileToImport.addPropertyChangeListener("value", this); //$NON-NLS-1$
 		this.btnChooseFile.addActionListener(this);
 		this.btnImport.addActionListener(this);
-		this.btnCommit.addActionListener(this);
+		this.btnCommit.addActionListener(event -> {
+			// invoked when Commit is selected
+			if (this.staged != null) {
+				try {
+					this.staged.commitChanges().ifPresent(summary -> {
+						MdLog.all(summary);
+						this.pnOutputLog.addText(summary);
+					});
+					enableCommitButton(this.staged.isModified());
+				} catch (Exception e) {
+					MdLog.all("Problem committing changes", e);
+					addText(e.toString());
+					enableCommitButton(false);
+				}
+			}
+		}); // end btnCommit.addActionListener
 
 	} // end wireEvents()
 
@@ -182,10 +201,6 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 
 		if (source == this.btnImport && this.feature != null) {
 			this.feature.importFile();
-		}
-
-		if (source == this.btnCommit && this.feature != null) {
-			this.feature.commitChanges();
 		}
 
 	} // end actionPerformed(ActionEvent)
@@ -248,17 +263,33 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 	} // end enableCommitButton(boolean)
 
 	/**
+	 * Store the object to manage staged changes.
+	 *
+	 * @param staged The object managing staged changes
+	 */
+	public void setStaged(StagedInterface staged) {
+		this.staged = staged;
+
+	} // end setStaged(StagedInterface)
+
+	/**
+	 * Store an object with resources to close.
+	 *
+	 * @param closeable The object managing closeable resources
+	 */
+	public void addCloseableResource(AutoCloseable closeable) {
+		this.closeableResources.addFirst(closeable);
+
+	} // end addCloseableResource(AutoCloseable)
+
+	/**
 	 * Processes events on this window.
 	 *
 	 * @param event The event to be processed
 	 */
 	protected void processEvent(AWTEvent event) {
 		if (event.getID() == WindowEvent.WINDOW_CLOSING) {
-			if (this.feature != null) {
-				this.feature.closeWindow();
-			} else {
-				goAway();
-			}
+			goAway();
 		} else {
 			super.processEvent(event);
 		}
@@ -274,6 +305,15 @@ public class FwImportWindow extends JFrame implements ActionListener, PropertyCh
 		this.screenUtil.persistWindowCoordinates(this.mdStorage);
 		setVisible(false);
 		dispose();
+
+		while (!this.closeableResources.isEmpty()) {
+			// Release any resources we acquired.
+			try {
+				this.closeableResources.removeFirst().close();
+			} catch (Exception e) {
+				MdLog.all("Problem closing resource", e);
+			}
+		}
 
 		return null;
 	} // end goAway()
