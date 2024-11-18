@@ -17,11 +17,7 @@ import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.DefaultFormatter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.io.Serial;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,7 +28,7 @@ import java.util.ResourceBundle;
 import static javax.swing.GroupLayout.DEFAULT_SIZE;
 import static javax.swing.GroupLayout.PREFERRED_SIZE;
 
-public class YqImportWindow extends JFrame implements ActionListener, PropertyChangeListener, CsvProcessWindow {
+public class YqImportWindow extends JFrame implements CsvProcessWindow {
 	private final Main feature;
 	private final MdStorageUtil mdStorage;
 	private final CsvChooser chooser;
@@ -156,9 +152,15 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 	 * Wire in our event listeners.
 	 */
 	private void wireEvents() {
-		this.txtFileToImport.addPropertyChangeListener("value", this); //$NON-NLS-1$
-		this.btnChooseFile.addActionListener(this);
-		this.btnImport.addActionListener(this);
+		this.txtFileToImport.addPropertyChangeListener("value", event ->
+			this.btnImport.setEnabled(true));
+		this.btnChooseFile.addActionListener(event ->
+			setFileToImport(this.chooser.chooseCsvFile(DEFAULT_FILE_GLOB_PATTERN)));
+		this.btnImport.addActionListener(event -> {
+			if (this.feature != null) {
+				this.feature.importFile();
+			}
+		});
 		this.btnCommit.addActionListener(event -> {
 			// invoked when Commit is selected
 			if (this.staged != null) {
@@ -186,37 +188,6 @@ public class YqImportWindow extends JFrame implements ActionListener, PropertyCh
 				.ifPresent(this::setIconImage);
 
 	} // end readIconImage()
-
-	/**
-	 * Invoked when an action occurs.
-	 *
-	 * @param event The event to be processed
-	 */
-	public void actionPerformed(ActionEvent event) {
-		Object source = event.getSource();
-
-		if (source == this.btnChooseFile) {
-			setFileToImport(this.chooser.chooseCsvFile(DEFAULT_FILE_GLOB_PATTERN));
-		}
-
-		if (source == this.btnImport && this.feature != null) {
-			this.feature.importFile();
-		}
-
-	} // end actionPerformed(ActionEvent)
-
-	/**
-	 * This method gets called when a bound property is changed.
-	 * @param evt a PropertyChangeEvent object describing the event source and the property that has changed.
-	 */
-	public void propertyChange(PropertyChangeEvent evt) {
-		Object source = evt.getSource();
-
-		if (source == this.txtFileToImport) {
-			this.btnImport.setEnabled(true);
-		}
-
-	} // end propertyChange(PropertyChangeEvent)
 
 	/**
 	 * @return the file selected to import
